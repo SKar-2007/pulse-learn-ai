@@ -3,6 +3,7 @@ server/node_modules
 client/node_modules
 client/dist
 .env
+**/.env
 server/.env
 client/.env
 .DS_Store

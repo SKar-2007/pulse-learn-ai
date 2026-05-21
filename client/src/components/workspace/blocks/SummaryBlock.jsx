@@ -11,7 +11,7 @@ export default function SummaryBlock({ workspaceNotes, session }) {
         if (!workspaceNotes || loading) return;
         setLoading(true);
         try {
-            const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/user/chat`, {
+            const { data } = await axios.post(`${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/user/chat`, {
                 message: "Based on all the notes in this workspace, generate a concise 'Smart Brief'. Highlight key concepts, cross-relationships, and missing gaps in my understanding. Format it with premium typography.",
                 history: [],
                 workspaceNotes

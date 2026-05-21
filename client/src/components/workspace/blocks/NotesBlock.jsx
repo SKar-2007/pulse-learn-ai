@@ -16,7 +16,7 @@ export default function NotesBlock({ roadmap, session, config, onConfigChange, w
                 : 'Summarize the note below into concise study guidance and next steps. Use bullet points where possible.\n\n';
 
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/user/chat`,
+                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/user/chat`,
                 {
                     message: `${prompt}${editor.getText()}`,
                     history: [],
@@ -92,7 +92,7 @@ export default function NotesBlock({ roadmap, session, config, onConfigChange, w
                             onClick={async () => {
                                 const text = editor.getText();
                                 const { data } = await axios.post(
-                                    `${import.meta.env.VITE_API_URL}/api/user/chat`,
+                                    `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/user/chat`,
                                     {
                                         message: `Summarize this text in a few bullet points:\n\n${text}`,
                                         history: [],

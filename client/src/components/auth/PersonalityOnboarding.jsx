@@ -89,7 +89,7 @@ export default function PersonalityOnboarding({ session, onComplete }) {
         setSaving(true);
         try {
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/user/profile`,
+                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/user/profile`,
                 finalAnswers,
                 { headers: { Authorization: `Bearer ${session.access_token}` } }
             );

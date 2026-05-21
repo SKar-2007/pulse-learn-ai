@@ -14,7 +14,7 @@ export default function useGlobalSearch(session, query) {
     let active = true;
     setLoading(true);
 
-    axios.get(`${import.meta.env.VITE_API_URL}/api/search?q=${encodeURIComponent(query)}`, {
+    axios.get(`${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/search?q=${encodeURIComponent(query)}`, {
       headers: { Authorization: `Bearer ${session.access_token}` },
     }).then(({ data }) => {
       if (active) {

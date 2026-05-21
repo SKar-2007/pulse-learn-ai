@@ -22,7 +22,7 @@ export default function MBTITest({ session, onComplete }) {
             setSaving(true);
             try {
                 const { data } = await axios.post(
-                    `${import.meta.env.VITE_API_URL}/api/user/mbti`,
+                    `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/user/mbti`,
                     { answers: newAnswers },
                     { headers: { Authorization: `Bearer ${session.access_token}` } }
                 );

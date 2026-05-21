@@ -52,7 +52,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/user/profile`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/user/profile`, {
         headers: { Authorization: `Bearer ${sess.access_token}` },
       });
       const data = await res.json();

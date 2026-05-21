@@ -24,7 +24,7 @@ export default function UploadForm({ token, onRoadmapGenerated }) {
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/roadmap/generate`,
+        `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/roadmap/generate`,
         formData,
         {
           headers: {

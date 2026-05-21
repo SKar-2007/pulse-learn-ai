@@ -74,7 +74,7 @@ export default function Dashboard({ session, profile }) {
         if (!selectedRoadmap?.id || !session?.access_token) return;
         try {
             await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/automation/trigger`,
+                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/automation/trigger`,
                 {
                     roadmap_id: selectedRoadmap.id,
                     trigger_type: triggerType,
@@ -143,7 +143,7 @@ export default function Dashboard({ session, profile }) {
         if (!currentPageId || !selectedRoadmap?.id) return;
         try {
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/workspace/${selectedRoadmap.id}/pages/${currentPageId}/duplicate`,
+                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/workspace/${selectedRoadmap.id}/pages/${currentPageId}/duplicate`,
                 { title: `Copy of ${currentPage?.title || 'Page'}` },
                 { headers: { Authorization: `Bearer ${session.access_token}` } }
             );
@@ -166,7 +166,7 @@ export default function Dashboard({ session, profile }) {
             setAutomationLoading(true);
             try {
                 const { data } = await axios.get(
-                    `${import.meta.env.VITE_API_URL}/api/automation/${selectedRoadmap.id}`,
+                    `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/automation/${selectedRoadmap.id}`,
                     { headers: { Authorization: `Bearer ${session.access_token}` } }
                 );
                 setAutomationRules(data.rules || []);
@@ -265,7 +265,7 @@ export default function Dashboard({ session, profile }) {
         if (!selectedRoadmap?.id || !session?.access_token) return;
         try {
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/loop-component`,
+                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/loop-component`,
                 {
                     roadmap_id: selectedRoadmap.id,
                     block_type: block.type,
@@ -320,7 +320,7 @@ export default function Dashboard({ session, profile }) {
         setToastMessage('Minting credential on Stellar...');
         try {
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/roadmap/${selectedRoadmap.id}/complete`,
+                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/roadmap/${selectedRoadmap.id}/complete`,
                 { finalScore: nodes.length ? (nodes.filter(n => n.status === 'completed').length / nodes.length) * 100 : 100 },
                 { headers: { Authorization: `Bearer ${session.access_token}` } }
             );
@@ -526,7 +526,7 @@ export default function Dashboard({ session, profile }) {
                                         if (!selectedRoadmap?.id || !session?.access_token) return;
                                         try {
                                             const { data } = await axios.post(
-                                                `${import.meta.env.VITE_API_URL}/api/automation/${selectedRoadmap.id}`,
+                                                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/automation/${selectedRoadmap.id}`,
                                                 rule,
                                                 { headers: { Authorization: `Bearer ${session.access_token}` } }
                                             );
@@ -539,7 +539,7 @@ export default function Dashboard({ session, profile }) {
                                         if (!session?.access_token) return;
                                         try {
                                             await axios.delete(
-                                                `${import.meta.env.VITE_API_URL}/api/automation/${ruleId}`,
+                                                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/automation/${ruleId}`,
                                                 { headers: { Authorization: `Bearer ${session.access_token}` } }
                                             );
                                             setAutomationRules((prev) => prev.filter((rule) => rule.id !== ruleId));

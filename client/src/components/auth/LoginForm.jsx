@@ -19,7 +19,7 @@ export default function LoginForm() {
         ? `Welcome back, ${savedPersona.expertise_level} ${savedPersona.study_domain || 'scholar'}`
         : "Your personality-aware learning journey starts here.";
 
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || '';
 
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();

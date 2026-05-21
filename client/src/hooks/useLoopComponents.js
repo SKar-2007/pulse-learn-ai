@@ -11,7 +11,7 @@ export default function useLoopComponents(roadmapId, session) {
     const load = async () => {
       try {
         const { data } = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/loop-component?roadmapId=${roadmapId}`,
+          `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/loop-component?roadmapId=${roadmapId}`,
           { headers: { Authorization: `Bearer ${session.access_token}` } }
         );
         setComponents(data.components || []);
@@ -40,7 +40,7 @@ export default function useLoopComponents(roadmapId, session) {
   const detachBlock = async (block) => {
     if (!session?.access_token) return null;
     const { data } = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/loop-component`,
+      `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/loop-component`,
       {
         roadmap_id: roadmapId,
         block_type: block.type,

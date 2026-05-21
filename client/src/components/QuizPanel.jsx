@@ -22,7 +22,7 @@ export default function QuizPanel({ node, onVerify, session }) {
     setAnswers([]);
     try {
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/node/quiz`,
+        `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/node/quiz`,
         { nodeId: node.id },
         { headers: { Authorization: `Bearer ${session.access_token}` } }
       );
@@ -43,7 +43,7 @@ export default function QuizPanel({ node, onVerify, session }) {
     setSubmitting(true);
     try {
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/node/verify`,
+        `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/node/verify`,
         {
           nodeId: node.id,
           roadmapId: node.roadmap_id,

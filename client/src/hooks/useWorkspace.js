@@ -9,7 +9,7 @@ const DEMO_LAYOUT = [
 ];
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || '';
 
 export default function useWorkspace(roadmapId, session, isShared = false) {
     const [layout, setLayout] = useState([]);

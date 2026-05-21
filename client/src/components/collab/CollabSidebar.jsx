@@ -23,7 +23,7 @@ export default function CollabSidebar({ roadmapId, ownerId }) {
     const fetchCollaborators = async () => {
         try {
             const { data } = await axios.get(
-                `${import.meta.env.VITE_API_URL}/api/collab/${roadmapId}`,
+                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/collab/${roadmapId}`,
                 { headers: { Authorization: `Bearer ${session.access_token}` } }
             );
             setCollaborators(data.collaborators || []);
@@ -44,7 +44,7 @@ export default function CollabSidebar({ roadmapId, ownerId }) {
         setError(null);
         try {
             await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/collab/invite`,
+                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/collab/invite`,
                 { roadmap_id: roadmapId, invitee_email: inviteEmail, role: inviteRole },
                 { headers: { Authorization: `Bearer ${session.access_token}` } }
             );

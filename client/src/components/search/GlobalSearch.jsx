@@ -30,7 +30,7 @@ export default function GlobalSearch({ session, onNavigate }) {
     const timer = setTimeout(async () => {
       try {
         const { data } = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/search?q=${encodeURIComponent(query)}`,
+          `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/search?q=${encodeURIComponent(query)}`,
           { headers: { Authorization: `Bearer ${session.access_token}` } }
         );
         setResults(data.results || { pages: [], nodes: [], notes: [] });

@@ -11,7 +11,7 @@ export default function RecapBlock({ config = {}, roadmap, session, profile, wor
     setLoading(true);
     try {
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/recap/${roadmapId}`,
+        `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/recap/${roadmapId}`,
         { pageContext, mbtiType: profile?.mbti_type },
         { headers: { Authorization: `Bearer ${session?.access_token}` } }
       );

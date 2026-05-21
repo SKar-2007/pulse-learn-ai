@@ -14,7 +14,7 @@ export default function useAIAssistant(session, profile, workspaceNotes) {
 
     try {
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/ai-assistant`,
+        `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/ai-assistant`,
         {
           messages: updatedMessages,
           pageContext: workspaceNotes,

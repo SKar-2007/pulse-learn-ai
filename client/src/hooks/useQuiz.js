@@ -24,7 +24,7 @@ export default function useQuiz() {
       }
 
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/node/verify`,
+        `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/node/verify`,
         {
           nodeId,
           roadmapId,

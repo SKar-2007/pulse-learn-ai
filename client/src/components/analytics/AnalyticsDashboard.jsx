@@ -28,7 +28,7 @@ export default function AnalyticsDashboard() {
 
         try {
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/analytics/query`,
+                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/analytics/query`,
                 { query: activeQuery },
                 { headers: { Authorization: `Bearer ${session.access_token}` } }
             );

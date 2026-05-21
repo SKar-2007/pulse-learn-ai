@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || '';
 const DEMO_ROADMAPS = [
   {
     id: 'demo-roadmap',
