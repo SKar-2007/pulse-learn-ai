@@ -1,12 +1,24 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { HttpError } from '../utils/httpError.js';
 
 const client = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const model = client.getGenerativeModel({ model: 'gemini-pro' });
 
 export async function generateRoadmapFromText(syllabusText) {
-  const prompt = `Extract a JSON array of learning nodes from the syllabus text. Use the following node schema: title, summary, estimatedMinutes, parentNodeId, status, remediationDepth. Respond with valid JSON only.`;
+  if (!syllabusText || typeof syllabusText !== 'string') {
+    throw new HttpError('Syllabus text is required to generate a roadmap.', 400, 'invalid_input');
+  }
 
-  const result = await model.generateContent(`${prompt}\n\nSyllabus:\n${syllabusText}`);
+  const prompt = `Extract a JSON array of learning nodes from the syllabus text. Use the following node schema: title, summary, estimatedMinutes, parentNodeId, status, remediationDepth. Respond with valid JSON only.`;
+  const content = `${prompt}\n\nSyllabus:\n${syllabusText}`;
+
+  let result;
+  try {
+    result = await model.generateContent(content);
+  } catch (error) {
+    throw new HttpError('Failed to generate roadmap nodes from text.', 502, 'ai_service_error');
+  }
+
   const output = extractText(result) || '';
   return parseRoadmapNodes(output);
 }
@@ -26,6 +38,7 @@ function parseRoadmapNodes(rawText) {
 }
 
 function extractJson(text) {
+  if (!text) return '[]';
   const first = text.indexOf('[');
   const last = text.lastIndexOf(']');
   if (first !== -1 && last !== -1) {
@@ -36,17 +49,17 @@ function extractJson(text) {
 
 function normalizeNode(node, index) {
   return {
-    title: String(node.title || `Node ${index + 1}`).trim(),
-    summary: String(node.summary || '').trim(),
-    estimatedMinutes: parseInt(node.estimatedMinutes, 10) || 20,
-    parentNodeId: node.parentNodeId || null,
-    status: node.status || (index === 0 ? 'unlocked' : 'locked'),
-    remediationDepth: node.remediationDepth || 0,
+    title: String(node?.title || `Node ${index + 1}`).trim(),
+    summary: String(node?.summary || '').trim(),
+    estimatedMinutes: parseInt(node?.estimatedMinutes, 10) || 20,
+    parentNodeId: node?.parentNodeId || null,
+    status: String(node?.status || (index === 0 ? 'unlocked' : 'locked')).trim(),
+    remediationDepth: parseInt(node?.remediationDepth, 10) || 0,
   };
 }
 
 function fallbackToLines(rawText) {
-  const lines = rawText
+  const lines = String(rawText)
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
@@ -62,12 +75,21 @@ function fallbackToLines(rawText) {
 }
 
 export async function verifyNodeAnswer({ userAnswer, expectedSummary }) {
+  if (!userAnswer || !expectedSummary) {
+    throw new HttpError('Both userAnswer and expectedSummary are required for verification.', 400, 'invalid_input');
+  }
+
   const prompt = `Assess whether the following answer demonstrates correct understanding of the expected concept. Return an object with score (0-1) and feedback.\n\nExpected summary: ${expectedSummary}\n\nStudent answer: ${userAnswer}`;
 
-  const result = await model.generateContent(prompt);
-  const feedback = extractText(result) || 'Unable to verify answer.';
-  const score = feedback.toLowerCase().includes('correct') ? 0.9 : 0.5;
+  let result;
+  try {
+    result = await model.generateContent(prompt);
+  } catch (error) {
+    throw new HttpError('AI verification failed.', 502, 'ai_service_error');
+  }
 
+  const feedback = extractText(result) || 'Unable to verify answer.';
+  const score = parseScore(feedback);
   return { score, feedback };
 }
 
@@ -76,4 +98,12 @@ function extractText(result) {
   const candidate = response?.candidates?.[0];
   const parts = candidate?.content?.parts || [];
   return parts.map((part) => part.text || '').join('').trim();
+}
+
+function parseScore(feedback) {
+  const normalized = String(feedback).toLowerCase();
+  if (normalized.includes('correct') || normalized.includes('accurate')) return 0.9;
+  if (normalized.includes('partially')) return 0.7;
+  if (normalized.includes('incorrect') || normalized.includes('not')) return 0.4;
+  return 0.5;
 }

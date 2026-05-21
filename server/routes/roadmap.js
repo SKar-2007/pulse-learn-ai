@@ -2,10 +2,13 @@ import express from 'express';
 import pdfParse from 'pdf-parse';
 import upload from '../middleware/upload.js';
 import authMiddleware from '../middleware/auth.js';
+import asyncHandler from '../middleware/asyncHandler.js';
+import { HttpError } from '../utils/httpError.js';
 import {
   createRoadmap,
   getRoadmapById,
   getRoadmapsByUser,
+  getRoadmapDetails,
   getNodesByRoadmap,
   insertNodes,
   saveStellarHash,
@@ -16,49 +19,47 @@ import { mintCredentialReceipt, verifyStellarReceipt } from '../services/stellar
 const router = express.Router();
 router.use(authMiddleware);
 
-router.get('/', async (req, res) => {
-  try {
+router.get(
+  '/',
+  asyncHandler(async (req, res) => {
     const roadmaps = await getRoadmapsByUser(req.user.id);
     res.json({ roadmaps });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+  })
+);
 
-router.get('/:id', async (req, res) => {
-  try {
-    const roadmap = await getRoadmapById(req.params.id);
+router.get(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const roadmap = await getRoadmapDetails(req.params.id);
     if (!roadmap) {
-      return res.status(404).json({ error: 'Roadmap not found.' });
+      throw new HttpError('Roadmap not found.', 404, 'roadmap_not_found');
     }
     if (roadmap.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Access denied for this roadmap.' });
+      throw new HttpError('Access denied for this roadmap.', 403, 'access_denied');
     }
-    const nodes = await getNodesByRoadmap(req.params.id);
-    res.json({ roadmap, nodes });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    res.json({ roadmap });
+  })
+);
 
-router.get('/:id/nodes', async (req, res) => {
-  try {
+router.get(
+  '/:id/nodes',
+  asyncHandler(async (req, res) => {
     const roadmap = await getRoadmapById(req.params.id);
     if (!roadmap) {
-      return res.status(404).json({ error: 'Roadmap not found.' });
+      throw new HttpError('Roadmap not found.', 404, 'roadmap_not_found');
     }
     if (roadmap.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Access denied for this roadmap.' });
+      throw new HttpError('Access denied for this roadmap.', 403, 'access_denied');
     }
     const nodes = await getNodesByRoadmap(req.params.id);
     res.json({ nodes });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+  })
+);
 
-router.post('/generate', upload.single('syllabus'), async (req, res) => {
-  try {
+router.post(
+  '/generate',
+  upload.single('syllabus'),
+  asyncHandler(async (req, res) => {
     const { title, timeBudgetHours, targetDate, text } = req.body;
     let syllabusText = text;
 
@@ -68,7 +69,7 @@ router.post('/generate', upload.single('syllabus'), async (req, res) => {
     }
 
     if (!title || !timeBudgetHours || !syllabusText) {
-      return res.status(400).json({ error: 'Missing required fields or syllabus upload.' });
+      throw new HttpError('Missing required fields or syllabus upload.', 400, 'bad_request');
     }
 
     const roadmap = await createRoadmap({
@@ -83,21 +84,23 @@ router.post('/generate', upload.single('syllabus'), async (req, res) => {
     const insertedNodes = await insertNodes(roadmap.id, nodes);
 
     res.json({ roadmap, nodes: insertedNodes });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+  })
+);
 
-router.post('/mint', async (req, res) => {
-  try {
+router.post(
+  '/mint',
+  asyncHandler(async (req, res) => {
     const { roadmapId, walletSecret } = req.body;
     if (!roadmapId) {
-      return res.status(400).json({ error: 'roadmapId is required.' });
+      throw new HttpError('roadmapId is required.', 400, 'bad_request');
     }
 
     const roadmap = await getRoadmapById(roadmapId);
+    if (!roadmap) {
+      throw new HttpError('Roadmap not found.', 404, 'roadmap_not_found');
+    }
     if (roadmap.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Access denied for this roadmap.' });
+      throw new HttpError('Access denied for this roadmap.', 403, 'access_denied');
     }
 
     const txHash = await mintCredentialReceipt({
@@ -107,37 +110,33 @@ router.post('/mint', async (req, res) => {
 
     await saveStellarHash(roadmapId, txHash);
     res.json({ txHash });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+  })
+);
 
-router.get('/:id/receipt', async (req, res) => {
-  try {
+router.get(
+  '/:id/receipt',
+  asyncHandler(async (req, res) => {
     const roadmap = await getRoadmapById(req.params.id);
     if (!roadmap) {
-      return res.status(404).json({ error: 'Roadmap not found.' });
+      throw new HttpError('Roadmap not found.', 404, 'roadmap_not_found');
     }
     if (roadmap.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Access denied for this roadmap.' });
+      throw new HttpError('Access denied for this roadmap.', 403, 'access_denied');
     }
 
     if (!roadmap.stellar_tx_hash) {
-      return res.status(404).json({ error: 'No Stellar receipt found for this roadmap.' });
+      throw new HttpError('No Stellar receipt found for this roadmap.', 404, 'receipt_not_found');
     }
 
     const verifyOnChain = req.query.verify === 'true' || req.query.verify === '1';
-    const result = { txHash: roadmap.stellar_tx_hash };
+    const response = { txHash: roadmap.stellar_tx_hash };
 
     if (verifyOnChain) {
-      const receipt = await verifyStellarReceipt(roadmap.stellar_tx_hash);
-      result.receipt = receipt;
+      response.receipt = await verifyStellarReceipt(roadmap.stellar_tx_hash);
     }
 
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    res.json(response);
+  })
+);
 
 export default router;

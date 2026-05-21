@@ -1,5 +1,7 @@
 import express from 'express';
 import authMiddleware from '../middleware/auth.js';
+import asyncHandler from '../middleware/asyncHandler.js';
+import { HttpError } from '../utils/httpError.js';
 import { verifyNodeAnswer } from '../services/geminiService.js';
 import {
   updateNodeStatus,
@@ -12,29 +14,33 @@ import {
 const router = express.Router();
 router.use(authMiddleware);
 
-router.post('/verify', async (req, res) => {
-  try {
+router.post(
+  '/verify',
+  asyncHandler(async (req, res) => {
     const { nodeId, userAnswer, expectedSummary, roadmapId } = req.body;
     if (!nodeId || !userAnswer || !expectedSummary || !roadmapId) {
-      return res.status(400).json({ error: 'nodeId, roadmapId, userAnswer, and expectedSummary are required.' });
+      throw new HttpError('nodeId, roadmapId, userAnswer, and expectedSummary are required.', 400, 'bad_request');
     }
 
     const roadmap = await getRoadmapById(roadmapId);
+    if (!roadmap) {
+      throw new HttpError('Roadmap not found.', 404, 'roadmap_not_found');
+    }
     if (roadmap.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Access denied for this roadmap.' });
+      throw new HttpError('Access denied for this roadmap.', 403, 'access_denied');
     }
 
     const node = await getNodeById(nodeId);
     if (!node) {
-      return res.status(404).json({ error: 'Node not found.' });
+      throw new HttpError('Node not found.', 404, 'node_not_found');
     }
     if (node.roadmap_id !== roadmapId) {
-      return res.status(403).json({ error: 'Node does not belong to the requested roadmap.' });
+      throw new HttpError('Node does not belong to the requested roadmap.', 403, 'node_mismatch');
     }
 
     const { score, feedback } = await verifyNodeAnswer({ userAnswer, expectedSummary });
     const status = score >= 0.7 ? 'completed' : 'unlocked';
-    const updatedNode = await updateNodeStatus(nodeId, { status });
+    const updatedNode = await updateNodeStatus(nodeId, { status, completed_at: score >= 0.7 ? new Date().toISOString() : null });
 
     await insertActiveRecallLog({
       userId: req.user.id,
@@ -56,9 +62,7 @@ router.post('/verify', async (req, res) => {
     }
 
     res.json({ node: updatedNode, score, feedback });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+  })
+);
 
 export default router;
