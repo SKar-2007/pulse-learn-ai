@@ -75,6 +75,17 @@ export async function getNodesByRoadmap(roadmapId) {
   return data;
 }
 
+export async function getNodeById(nodeId) {
+  const { data, error } = await supabase
+    .from('nodes')
+    .select('*')
+    .eq('id', nodeId)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function insertNodes(roadmapId, nodesArray) {
   const rows = nodesArray.map((node, index) => ({
     roadmap_id: roadmapId,

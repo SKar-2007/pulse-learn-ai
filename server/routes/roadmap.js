@@ -11,7 +11,7 @@ import {
   saveStellarHash,
 } from '../services/supabaseService.js';
 import { generateRoadmapFromText } from '../services/geminiService.js';
-import { mintCredentialReceipt } from '../services/stellarService.js';
+import { mintCredentialReceipt, verifyStellarReceipt } from '../services/stellarService.js';
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -107,6 +107,34 @@ router.post('/mint', async (req, res) => {
 
     await saveStellarHash(roadmapId, txHash);
     res.json({ txHash });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/:id/receipt', async (req, res) => {
+  try {
+    const roadmap = await getRoadmapById(req.params.id);
+    if (!roadmap) {
+      return res.status(404).json({ error: 'Roadmap not found.' });
+    }
+    if (roadmap.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied for this roadmap.' });
+    }
+
+    if (!roadmap.stellar_tx_hash) {
+      return res.status(404).json({ error: 'No Stellar receipt found for this roadmap.' });
+    }
+
+    const verifyOnChain = req.query.verify === 'true' || req.query.verify === '1';
+    const result = { txHash: roadmap.stellar_tx_hash };
+
+    if (verifyOnChain) {
+      const receipt = await verifyStellarReceipt(roadmap.stellar_tx_hash);
+      result.receipt = receipt;
+    }
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

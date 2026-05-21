@@ -6,6 +6,7 @@ import {
   insertActiveRecallLog,
   createRemediationNode,
   getRoadmapById,
+  getNodeById,
 } from '../services/supabaseService.js';
 
 const router = express.Router();
@@ -23,9 +24,17 @@ router.post('/verify', async (req, res) => {
       return res.status(403).json({ error: 'Access denied for this roadmap.' });
     }
 
+    const node = await getNodeById(nodeId);
+    if (!node) {
+      return res.status(404).json({ error: 'Node not found.' });
+    }
+    if (node.roadmap_id !== roadmapId) {
+      return res.status(403).json({ error: 'Node does not belong to the requested roadmap.' });
+    }
+
     const { score, feedback } = await verifyNodeAnswer({ userAnswer, expectedSummary });
     const status = score >= 0.7 ? 'completed' : 'unlocked';
-    const node = await updateNodeStatus(nodeId, { status });
+    const updatedNode = await updateNodeStatus(nodeId, { status });
 
     await insertActiveRecallLog({
       userId: req.user.id,
@@ -36,7 +45,6 @@ router.post('/verify', async (req, res) => {
     });
 
     if (score < 0.7) {
-      await createRemediationNode({
         roadmapId,
         parentNodeId: nodeId,
         title: `Remediation: ${expectedSummary.slice(0, 50)}`,
@@ -46,7 +54,7 @@ router.post('/verify', async (req, res) => {
       });
     }
 
-    res.json({ node, score, feedback });
+    res.json({ node: updatedNode, score, feedback });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
