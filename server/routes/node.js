@@ -1,0 +1,54 @@
+import express from 'express';
+import authMiddleware from '../middleware/auth.js';
+import { verifyNodeAnswer } from '../services/geminiService.js';
+import {
+  updateNodeStatus,
+  insertActiveRecallLog,
+  createRemediationNode,
+  getRoadmapById,
+} from '../services/supabaseService.js';
+
+const router = express.Router();
+router.use(authMiddleware);
+
+router.post('/verify', async (req, res) => {
+  try {
+    const { nodeId, userAnswer, expectedSummary, roadmapId } = req.body;
+    if (!nodeId || !userAnswer || !expectedSummary || !roadmapId) {
+      return res.status(400).json({ error: 'nodeId, roadmapId, userAnswer, and expectedSummary are required.' });
+    }
+
+    const roadmap = await getRoadmapById(roadmapId);
+    if (roadmap.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied for this roadmap.' });
+    }
+
+    const { score, feedback } = await verifyNodeAnswer({ userAnswer, expectedSummary });
+    const status = score >= 0.7 ? 'completed' : 'unlocked';
+    const node = await updateNodeStatus(nodeId, { status });
+
+    await insertActiveRecallLog({
+      userId: req.user.id,
+      nodeId,
+      quizScore: score,
+      aiFeedback: feedback,
+    });
+
+    if (score < 0.7) {
+      await createRemediationNode({
+        roadmapId,
+        parentNodeId: nodeId,
+        title: `Remediation: ${expectedSummary.slice(0, 50)}`,
+        summary: `Review and strengthen this concept: ${expectedSummary}`,
+        estimatedMinutes: 15,
+        remediationDepth: 1,
+      });
+    }
+
+    res.json({ node, score, feedback });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export default router;
