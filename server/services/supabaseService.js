@@ -160,6 +160,29 @@ export async function updateNodeStatus(nodeId, updates) {
   return data;
 }
 
+export async function markNodeCompleted(nodeId) {
+  return updateNodeStatus(nodeId, { status: 'completed', completed_at: new Date().toISOString() });
+}
+
+export async function unlockNextNode(roadmapId, currentOrder) {
+  const { data: nextNode, error: nextError } = await supabase
+    .from('nodes')
+    .select('*')
+    .eq('roadmap_id', roadmapId)
+    .gt('sequence_order', currentOrder)
+    .eq('status', 'locked')
+    .order('sequence_order', { ascending: true })
+    .limit(1)
+    .single();
+
+  if (nextError && nextError.code !== 'PGRST116') {
+    throw handleSupabaseError(nextError, 'Unable to retrieve next node');
+  }
+
+  if (!nextNode) return null;
+  return updateNodeStatus(nextNode.id, { status: 'unlocked' });
+}
+
 export async function insertActiveRecallLog({ userId, userEmail, nodeId, quizScore, aiFeedback }) {
   await ensureUserRecord({ id: userId, email: userEmail });
 

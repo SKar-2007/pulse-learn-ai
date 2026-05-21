@@ -2,9 +2,10 @@ import express from 'express';
 import authMiddleware from '../middleware/auth.js';
 import asyncHandler from '../middleware/asyncHandler.js';
 import { HttpError } from '../utils/httpError.js';
-import { verifyNodeAnswer } from '../services/geminiService.js';
+import { generateQuizQuestions, evaluateAnswers } from '../services/geminiService.js';
 import {
-  updateNodeStatus,
+  markNodeCompleted,
+  unlockNextNode,
   insertActiveRecallLog,
   createRemediationNode,
   getRoadmapById,
@@ -15,11 +16,29 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.post(
+  '/quiz',
+  asyncHandler(async (req, res) => {
+    const { nodeId } = req.body;
+    if (!nodeId) {
+      throw new HttpError('nodeId is required.', 400, 'bad_request');
+    }
+
+    const node = await getNodeById(nodeId);
+    if (!node) {
+      throw new HttpError('Node not found.', 404, 'node_not_found');
+    }
+
+    const questions = await generateQuizQuestions(node.title, node.summary);
+    res.json({ questions });
+  })
+);
+
+router.post(
   '/verify',
   asyncHandler(async (req, res) => {
-    const { nodeId, userAnswer, expectedSummary, roadmapId } = req.body;
-    if (!nodeId || !userAnswer || !expectedSummary || !roadmapId) {
-      throw new HttpError('nodeId, roadmapId, userAnswer, and expectedSummary are required.', 400, 'bad_request');
+    const { nodeId, roadmapId, userAnswers, userAnswer } = req.body;
+    if (!nodeId || !roadmapId || (!userAnswers && !userAnswer)) {
+      throw new HttpError('nodeId, roadmapId and userAnswers or userAnswer are required.', 400, 'bad_request');
     }
 
     const roadmap = await getRoadmapById(roadmapId);
@@ -38,30 +57,44 @@ router.post(
       throw new HttpError('Node does not belong to the requested roadmap.', 403, 'node_mismatch');
     }
 
-    const { score, feedback } = await verifyNodeAnswer({ userAnswer, expectedSummary });
-    const status = score >= 0.7 ? 'completed' : 'unlocked';
-    const updatedNode = await updateNodeStatus(nodeId, { status, completed_at: score >= 0.7 ? new Date().toISOString() : null });
+    const answers = userAnswers || [{ q_id: 1, answer: userAnswer }];
+    const evaluation = await evaluateAnswers(node.title, node.summary, answers);
+
+    let updatedNode = null;
+    if (evaluation.passed) {
+      updatedNode = await markNodeCompleted(nodeId);
+    } else {
+      updatedNode = await unlockNextNode(roadmapId, node.sequence_order);
+    }
 
     await insertActiveRecallLog({
       userId: req.user.id,
       userEmail: req.user.email,
       nodeId,
-      quizScore: score,
-      aiFeedback: feedback,
+      quizScore: evaluation.score,
+      aiFeedback: evaluation.feedback,
     });
 
-    if (score < 0.7) {
-      await createRemediationNode({
+    let remediationNode = null;
+    if (!evaluation.passed && node.remediation_depth < 2) {
+      remediationNode = await createRemediationNode({
         roadmapId,
         parentNodeId: nodeId,
-        title: `Remediation: ${expectedSummary.slice(0, 50)}`,
-        summary: `Review and strengthen this concept: ${expectedSummary}`,
-        estimatedMinutes: 15,
-        remediationDepth: 1,
+        title: `Remediation: ${node.title}`,
+        summary: evaluation.remediation_node?.summary || `Review the topic: ${node.summary}`,
+        estimatedMinutes: evaluation.remediation_node?.estimated_minutes || 15,
+        remediationDepth: node.remediation_depth + 1,
       });
     }
 
-    res.json({ node: updatedNode, score, feedback });
+    res.json({
+      passed: evaluation.passed,
+      score: evaluation.score,
+      feedback: evaluation.feedback,
+      mutation_triggered: !!remediationNode,
+      new_remediation_node: remediationNode,
+      node: updatedNode,
+    });
   })
 );
 

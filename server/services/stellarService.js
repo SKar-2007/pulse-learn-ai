@@ -22,7 +22,13 @@ export async function mintCredentialReceipt({ walletSecret, credentialData }) {
   }
 
   const server = getServer();
-  const account = await server.loadAccount(sourceKeypair.publicKey());
+  let account;
+  try {
+    account = await server.loadAccount(sourceKeypair.publicKey());
+  } catch (error) {
+    console.error('[PulseLearn][Stellar] Failed to load account:', error.message);
+    return null;
+  }
 
   const dataValue = buildStellarDataValue(credentialData);
   const dataKey = buildStellarDataKey(credentialData?.roadmapId || 'receipt');
@@ -47,7 +53,8 @@ export async function mintCredentialReceipt({ walletSecret, credentialData }) {
     const response = await server.submitTransaction(transaction);
     return response.hash;
   } catch (error) {
-    throw new HttpError('Unable to mint Stellar receipt.', 502, 'stellar_transaction_failed');
+    console.error('[PulseLearn][Stellar] Transaction failed:', error?.response?.data || error.message);
+    return null;
   }
 }
 

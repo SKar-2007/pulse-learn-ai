@@ -1,50 +1,39 @@
 import { useState } from 'react';
+import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-export default function UploadForm({ token, onCreated }) {
-  const [title, setTitle] = useState('');
-  const [hours, setHours] = useState(10);
-  const [text, setText] = useState('');
+export default function UploadForm({ token, onRoadmapGenerated }) {
   const [file, setFile] = useState(null);
-  const [message, setMessage] = useState('');
+  const [hours, setHours] = useState(10);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setLoading(true);
-    setMessage('Generating roadmap...');
-
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('timeBudgetHours', hours);
-    if (file) {
-      formData.append('syllabus', file);
-    } else {
-      formData.append('text', text);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!file) {
+      setError('Please upload a file.');
+      return;
     }
 
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('syllabus', file);
+    formData.append('timeBudgetHours', hours);
+
     try {
-      const response = await fetch(`${API_URL}/api/roadmap/generate`, {
-        method: 'POST',
+      const response = await axios.post(`${API_URL}/api/roadmap/generate`, formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: formData,
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error || 'Unable to generate roadmap');
-      }
-
-      setMessage(`Roadmap created with ${data.nodes.length} nodes.`);
-      onCreated(data.roadmap);
-      setTitle('');
-      setText('');
+      onRoadmapGenerated(response.data.roadmap);
       setFile(null);
-    } catch (error) {
-      setMessage(error.message);
+      setHours(10);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Generation failed');
     } finally {
       setLoading(false);
     }
@@ -54,63 +43,44 @@ export default function UploadForm({ token, onCreated }) {
     <form onSubmit={handleSubmit} className="app-card">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-slate-100">Generate a roadmap</h2>
-          <p className="mt-2 text-sm text-slate-400">Upload a syllabus PDF or paste text to create a structured learning path.</p>
+          <h2 className="text-xl font-semibold text-slate-100">Upload Your Syllabus</h2>
+          <p className="mt-2 text-sm text-slate-400">Upload a syllabus PDF to create a structured learning path.</p>
         </div>
-        <span className="rounded-full bg-slate-800 px-3 py-1 text-xs uppercase tracking-[0.3em] text-slate-400">Minimal</span>
+        <span className="rounded-full bg-slate-800 px-3 py-1 text-xs uppercase tracking-[0.3em] text-slate-400">Rapid</span>
       </div>
 
-      <div className="mt-6 grid gap-4">
+      <div className="mt-6 space-y-4">
         <label className="block text-sm text-slate-300">
-          Roadmap title
+          Course Material (PDF or TXT, max 15MB)
           <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="input-base"
-            placeholder="AI fundamentals roadmap"
-            required
+            type="file"
+            accept=".pdf,.txt"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="mt-2 block w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 focus:border-indigo-500 focus:outline-none"
           />
         </label>
 
         <label className="block text-sm text-slate-300">
-          Time budget (hours)
+          Total Study Hours
           <input
             type="number"
             min="1"
+            max="200"
             value={hours}
             onChange={(e) => setHours(Number(e.target.value))}
-            className="input-base"
-            required
+            className="mt-2 block w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-slate-100 focus:border-indigo-500 focus:outline-none"
           />
         </label>
 
-        <label className="block text-sm text-slate-300">
-          Optional syllabus text
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="textarea-base"
-            placeholder="Paste syllabus text here if you are not uploading a PDF"
-            rows="5"
-          />
-        </label>
+        {error && <p className="text-sm text-red-400">{error}</p>}
 
-        <label className="block text-sm text-slate-300">
-          Optional syllabus PDF
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="input-base"
-          />
-        </label>
-      </div>
-
-      <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <button type="submit" disabled={loading} className="btn-primary">
-          {loading ? 'Generating…' : 'Generate roadmap'}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-3xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? 'Generating Skill Tree...' : 'Generate Learning Path ✨'}
         </button>
-        <p className="text-sm text-slate-400">{message}</p>
       </div>
     </form>
   );

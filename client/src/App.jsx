@@ -88,7 +88,7 @@ export default function App() {
     setMessage('');
   };
 
-  const handleRoadmapCreated = async (roadmap) => {
+  const handleRoadmapGenerated = async (roadmap) => {
     setSelectedRoadmap(roadmap);
     if (session?.access_token) {
       await loadRoadmap(roadmap.id, session.access_token);
@@ -179,7 +179,7 @@ export default function App() {
               </div>
             </section>
 
-            <UploadForm onCreated={handleRoadmapCreated} token={session.access_token} />
+            <UploadForm onRoadmapGenerated={handleRoadmapGenerated} token={session.access_token} />
 
             <section className="app-card">
               <div className="flex items-center justify-between gap-4">
@@ -266,7 +266,11 @@ export default function App() {
         </div>
       </div>
 
-      <StellarModal txHash={txHash} />
+      <StellarModal
+        txHash={txHash}
+        roadmapTitle={selectedRoadmap?.title}
+        onClose={() => setTxHash('')}
+      />
     </div>
   );
 }

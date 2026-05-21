@@ -80,10 +80,11 @@ router.post(
       targetDate: targetDate || null,
     });
 
-    const nodes = await generateRoadmapFromText(syllabusText);
-    const insertedNodes = await insertNodes(roadmap.id, nodes);
+    const { nodes } = await generateRoadmapFromText(syllabusText, parseInt(timeBudgetHours, 10));
+    await insertNodes(roadmap.id, nodes);
 
-    res.json({ roadmap, nodes: insertedNodes });
+    const fullRoadmap = await getRoadmapDetails(roadmap.id);
+    res.json({ roadmap: fullRoadmap });
   })
 );
 
@@ -108,8 +109,42 @@ router.post(
       credentialData: { roadmapId, mintedAt: new Date().toISOString() },
     });
 
-    await saveStellarHash(roadmapId, txHash);
+    if (txHash) {
+      await saveStellarHash(roadmapId, txHash);
+    }
     res.json({ txHash });
+  })
+);
+
+router.post(
+  '/:id/complete',
+  asyncHandler(async (req, res) => {
+    const { finalScore, walletSecret } = req.body;
+    const roadmap = await getRoadmapById(req.params.id);
+    if (!roadmap) {
+      throw new HttpError('Roadmap not found.', 404, 'roadmap_not_found');
+    }
+    if (roadmap.user_id !== req.user.id) {
+      throw new HttpError('Access denied for this roadmap.', 403, 'access_denied');
+    }
+
+    const roadmapDetails = await getRoadmapDetails(req.params.id);
+    const mainNodes = roadmapDetails.nodes.filter((node) => node.remediation_depth === 0);
+    const allDone = mainNodes.every((node) => node.status === 'completed');
+    if (!allDone) {
+      throw new HttpError('Not all main nodes are completed.', 400, 'not_all_nodes_completed');
+    }
+
+    const txHash = await mintCredentialReceipt({
+      walletSecret,
+      credentialData: { roadmapId: roadmap.id, mintedAt: new Date().toISOString(), title: roadmap.title, finalScore },
+    });
+
+    if (txHash) {
+      await saveStellarHash(roadmap.id, txHash);
+    }
+
+    res.json({ success: true, stellar_tx_hash: txHash });
   })
 );
 
