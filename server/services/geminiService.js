@@ -296,9 +296,21 @@ User message: ${inputMessage}
     return result.response.text();
   } catch (primaryError) {
     console.warn('Primary Gemini model failed, falling back to', FALLBACK_MODEL, primaryError?.message || primaryError);
-    const fallbackModel = getGenModel(FALLBACK_MODEL);
-    const fallbackResponse = await fallbackModel.generateContent(prompt);
-    return fallbackResponse.response.text();
+    try {
+      const fallbackModel = getGenModel(FALLBACK_MODEL);
+      const fallbackResponse = await fallbackModel.generateContent(prompt);
+      return fallbackResponse.response.text();
+    } catch (fallbackError) {
+      console.warn('Gemini fallback model failed, trying local LLM:', fallbackError?.message || fallbackError);
+      if (isLocalLlamaEnabled()) {
+        try {
+          return await requestLocalLlama(prompt);
+        } catch (localError) {
+          console.warn('Local Llama request failed as final fallback:', localError?.message || localError);
+        }
+      }
+      return 'AI is unavailable because all models (Gemini and local LLM) failed.';
+    }
   }
 }
 
