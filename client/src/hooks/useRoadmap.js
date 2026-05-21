@@ -1,6 +1,41 @@
 import { useState, useCallback } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const DEMO_ROADMAPS = [
+  {
+    id: 'demo-roadmap',
+    title: 'Pulse AI Learning Path',
+    owner_id: 'demo-user',
+    nodes: [
+      {
+        id: 'node-1',
+        title: 'AI Foundations',
+        summary: 'Understand core AI concepts, models, and learning loops.',
+        status: 'completed',
+        sequence_order: 1,
+        remediation_depth: 0,
+      },
+      {
+        id: 'node-2',
+        title: 'Active Recall Practice',
+        summary: 'Use explanation-based testing to strengthen memory.',
+        status: 'unlocked',
+        sequence_order: 2,
+        remediation_depth: 0,
+      },
+      {
+        id: 'node-3',
+        title: 'Learning Synthesis',
+        summary: 'Build an integrated roadmap and connect learning goals.',
+        status: 'locked',
+        sequence_order: 3,
+        remediation_depth: 0,
+      },
+    ],
+  },
+];
+
+const isDemoMode = (token) => import.meta.env.VITE_DEMO_MODE === 'true' || token === 'demo';
 
 export default function useRoadmap() {
   const [roadmaps, setRoadmaps] = useState([]);
@@ -14,9 +49,17 @@ export default function useRoadmap() {
   });
 
   const loadRoadmaps = useCallback(async (token) => {
-    if (!token) return;
+    const demo = isDemoMode(token);
+    if (!token && !demo) return;
     setLoading(true);
     try {
+      if (demo) {
+        setRoadmaps(DEMO_ROADMAPS);
+        setSelectedRoadmap(DEMO_ROADMAPS[0]);
+        setNodes(DEMO_ROADMAPS[0].nodes || []);
+        return;
+      }
+
       const response = await fetch(`${API_URL}/api/roadmap`, {
         headers: getHeaders(token),
       });
@@ -33,9 +76,17 @@ export default function useRoadmap() {
   }, []);
 
   const loadRoadmap = useCallback(async (roadmapId, token) => {
-    if (!roadmapId || !token) return;
+    const demo = isDemoMode(token);
+    if (!roadmapId && !demo) return;
     setLoading(true);
     try {
+      if (demo) {
+        const roadmap = DEMO_ROADMAPS.find((r) => r.id === roadmapId) || DEMO_ROADMAPS[0];
+        setSelectedRoadmap(roadmap);
+        setNodes(roadmap.nodes || []);
+        return;
+      }
+
       const response = await fetch(`${API_URL}/api/roadmap/${roadmapId}`, {
         headers: getHeaders(token),
       });

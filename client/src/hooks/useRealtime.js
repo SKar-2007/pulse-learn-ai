@@ -4,11 +4,13 @@ import { supabase } from '../lib/supabaseClient';
 
 export function useRealtime(roadmapId, userId, { onNodeUpdate, onCommentAdded }) {
     const [presence, setPresence] = useState({});
+    const [channel, setChannel] = useState(null);
+    const demoMode = import.meta.env.VITE_DEMO_MODE === 'true' || userId === 'demo-user';
 
     useEffect(() => {
-        if (!roadmapId || !userId) return;
+        if (!roadmapId || !userId || demoMode) return;
 
-        const channel = supabase.channel(`roadmap-${roadmapId}`, {
+        const chan = supabase.channel(`roadmap-${roadmapId}`, {
             config: {
                 presence: {
                     key: userId,
@@ -16,7 +18,7 @@ export function useRealtime(roadmapId, userId, { onNodeUpdate, onCommentAdded })
             },
         });
 
-        channel
+        chan
             // 1. Listen to Postgres Changes (Nodes & Comments)
             .on(
                 'postgres_changes',
@@ -30,19 +32,17 @@ export function useRealtime(roadmapId, userId, { onNodeUpdate, onCommentAdded })
             )
             // 2. Presence: Track who is currently viewing this roadmap
             .on('presence', { event: 'sync' }, () => {
-                const state = channel.presenceState();
-                setPresence(state);
-            })
-            .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-                console.log('User joined roadmap view:', key, newPresences);
-            })
-            .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-                console.log('User left roadmap view:', key, leftPresences);
+                const state = chan.presenceState();
+                const formatted = {};
+                Object.keys(state).forEach(key => {
+                    formatted[key] = state[key][0]; // Take latest presence state
+                });
+                setPresence(formatted);
             })
             .subscribe(async (status) => {
                 if (status === 'SUBSCRIBED') {
-                    // Track current user's presence
-                    await channel.track({
+                    setChannel(chan);
+                    await chan.track({
                         user_id: userId,
                         online_at: new Date().toISOString(),
                     });
@@ -50,9 +50,18 @@ export function useRealtime(roadmapId, userId, { onNodeUpdate, onCommentAdded })
             });
 
         return () => {
-            supabase.removeChannel(channel);
+            supabase.removeChannel(chan);
         };
-    }, [roadmapId, userId, onNodeUpdate, onCommentAdded]);
+    }, [roadmapId, userId, onNodeUpdate, onCommentAdded, demoMode]);
 
-    return { presence };
+    const trackCursor = async (pos) => {
+        if (demoMode || !channel) return;
+        await channel.track({
+            user_id: userId,
+            cursor: pos,
+            online_at: new Date().toISOString(),
+        });
+    };
+
+    return { presence, trackCursor };
 }

@@ -61,10 +61,18 @@ const STEPS = [
     },
 ];
 
+import MBTITest from './MBTITest';
+
 export default function PersonalityOnboarding({ session, onComplete }) {
-    const [step, setStep] = useState(0);
+    const [step, setStep] = useState(-1); // -1 for MBTI test
+    const [mbtiType, setMbtiType] = useState(null);
     const [answers, setAnswers] = useState({});
     const [saving, setSaving] = useState(false);
+
+    const handleMBTIComplete = (type) => {
+        setMbtiType(type);
+        setStep(0);
+    };
 
     const handleSelect = (value) => {
         const newAnswers = { ...answers, [STEPS[step].key]: value };
@@ -73,7 +81,7 @@ export default function PersonalityOnboarding({ session, onComplete }) {
         if (step < STEPS.length - 1) {
             setTimeout(() => setStep(step + 1), 300);
         } else {
-            handleSave(newAnswers);
+            handleSave({ ...newAnswers, mbti_type: mbtiType });
         }
     };
 
@@ -94,6 +102,31 @@ export default function PersonalityOnboarding({ session, onComplete }) {
             setSaving(false);
         }
     };
+
+    if (step === -1) {
+        return (
+            <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6 relative overflow-hidden">
+                {/* Background Blobs */}
+                <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
+                    <div className="absolute top-[20%] left-[10%] w-64 h-64 bg-indigo-600 rounded-full blur-[100px] animate-pulse" />
+                    <div className="absolute bottom-[20%] right-[10%] w-64 h-64 bg-blue-600 rounded-full blur-[100px] animate-pulse delay-1000" />
+                </div>
+                <div className="max-w-xl w-full z-10">
+                    <header className="mb-12 text-center">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full mb-6">
+                            <Sparkles size={14} className="text-indigo-400" />
+                            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Psychometric Phase</span>
+                        </div>
+                        <h1 className="text-4xl font-black text-white tracking-tight mb-4">
+                            Discover Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">MBTI Type</span>
+                        </h1>
+                        <p className="text-gray-400 font-medium">This helps us tailor the AI's teaching patterns to your cognition.</p>
+                    </header>
+                    <MBTITest onComplete={handleMBTIComplete} />
+                </div>
+            </div>
+        );
+    }
 
     const current = STEPS[step];
 

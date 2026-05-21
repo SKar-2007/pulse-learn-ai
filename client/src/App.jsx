@@ -5,12 +5,27 @@ import LoginForm from './components/auth/LoginForm';
 import PersonalityOnboarding from './components/auth/PersonalityOnboarding';
 import Dashboard from './components/Dashboard';
 
+const DEMO_SESSION = {
+  access_token: 'demo',
+  user: { id: 'demo-user', email: 'demo@pulse.test' },
+};
+
+const DEMO_PROFILE = {
+  mbti_type: 'INTJ',
+  study_domain: 'AI Strategy',
+  expertise_level: 'Intermediate',
+};
+
 export default function App() {
-  const [session, setSession] = useState(null);
-  const [profile, setProfile] = useState(undefined); // undefined = loading, null = needs onboarding
-  const [loading, setLoading] = useState(true);
+  const queryParams = new URLSearchParams(window.location.search);
+  const startDemo = queryParams.get('demo') === 'true' || import.meta.env.VITE_DEMO_MODE === 'true';
+  const [session, setSession] = useState(startDemo ? DEMO_SESSION : null);
+  const [profile, setProfile] = useState(startDemo ? DEMO_PROFILE : undefined); // undefined = loading, null = needs onboarding
+  const [loading, setLoading] = useState(startDemo ? false : true);
 
   useEffect(() => {
+    if (startDemo) return;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) fetchProfile(session);
@@ -30,6 +45,12 @@ export default function App() {
   }, []);
 
   const fetchProfile = async (sess) => {
+    if (sess?.access_token === 'demo') {
+      setProfile(DEMO_PROFILE);
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/user/profile`, {
         headers: { Authorization: `Bearer ${sess.access_token}` },
@@ -87,7 +108,7 @@ export default function App() {
         >
           <LoginForm />
         </motion.div>
-      ) : profile === null ? (
+      ) : (profile === null || !profile.mbti_type) ? (
         <motion.div
           key="onboarding"
           initial={{ opacity: 0 }}
