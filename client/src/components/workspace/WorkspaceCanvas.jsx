@@ -36,7 +36,7 @@ const BLOCK_COMPONENTS = {
 
 import WorkspaceCursors from './WorkspaceCursors';
 
-export default function WorkspaceCanvas({ layout, onLayoutChange, onRemoveBlock, onDetachBlock, onDuplicateBlock, roadmap, session, onConfigChange, workspaceNotes, presence, onCursorMove }) {
+export default function WorkspaceCanvas({ layout, onLayoutChange, onRemoveBlock, onDetachBlock, onDuplicateBlock, roadmap, session, onConfigChange, workspaceNotes, presence, onCursorMove, onVerify }) {
     const handleMouseMove = (e) => {
         if (!roadmap?.id || !onCursorMove) return;
         const rect = e.currentTarget.getBoundingClientRect();
@@ -69,6 +69,7 @@ export default function WorkspaceCanvas({ layout, onLayoutChange, onRemoveBlock,
                         config={item.config}
                         onConfigChange={(newConfig) => onConfigChange(item.i, newConfig)}
                         workspaceNotes={workspaceNotes}
+                        onVerify={onVerify}
                     />
                 </div>
             </div>

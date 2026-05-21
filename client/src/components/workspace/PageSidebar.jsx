@@ -16,15 +16,21 @@ export default function PageSidebar({ pages, currentPageId, onPageSelect, onNewP
 
   const buildPageTree = (pageList) => {
     const map = {};
-    pageList?.forEach((page) => { map[page.id] = { ...page, children: [] }; });
+    const pagesCopy = (pageList || []).map((page) => ({ ...page, children: [] }));
+    pagesCopy.forEach((page) => { map[page.id] = page; });
     const roots = [];
-    pageList?.forEach((page) => {
+    pagesCopy.forEach((page) => {
       if (page.parent_page_id && map[page.parent_page_id]) {
-        map[page.parent_page_id].children.push(map[page.id]);
+        map[page.parent_page_id].children.push(page);
       } else {
-        roots.push(map[page.id]);
+        roots.push(page);
       }
     });
+    const sortTree = (nodes) => {
+      nodes.sort((a, b) => (a.sequence_order || 0) - (b.sequence_order || 0));
+      nodes.forEach((node) => sortTree(node.children));
+    };
+    sortTree(roots);
     return roots;
   };
 

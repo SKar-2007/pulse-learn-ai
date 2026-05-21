@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { LogOut, Upload, Users, Sparkles, Layout } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactConfetti from 'react-confetti';
@@ -6,8 +6,8 @@ import axios from 'axios';
 import { supabase } from '../lib/supabaseClient';
 import useRoadmap from '../hooks/useRoadmap';
 import useWorkspace from '../hooks/useWorkspace';
-import useQuiz from '../hooks/useQuiz';
 import useAIAssistant from '../hooks/useAIAssistant';
+import useMCPBridge from '../hooks/useMCPBridge';
 import { useRealtime } from '../hooks/useRealtime';
 import WorkspaceCanvas from './workspace/WorkspaceCanvas';
 import BlockPalette from './workspace/BlockPalette';
@@ -18,6 +18,8 @@ import PresenceBar from './collab/PresenceBar';
 import AICompanion from './workspace/AICompanion';
 import GlobalSearch from './search/GlobalSearch';
 import PageSidebar from './workspace/PageSidebar';
+import PageBreadcrumb from './workspace/PageBreadcrumb';
+import WorkspaceSettings from './workspace/WorkspaceSettings';
 import StellarModal from './StellarModal';
 import UploadForm from './UploadForm';
 
@@ -47,16 +49,49 @@ export default function Dashboard({ session, profile }) {
 
     const { layout, setLayout, saveLayout, pages, currentPageId, currentPage, selectPage, createPage, loading: workspaceLoading } = useWorkspace(selectedRoadmap?.id, session, isShared);
 
-    const aggregateNotes = useCallback(() => {
+    const workspaceNotes = useMemo(() => {
         return layout
             .filter(b => b.type === 'notes' && b.config?.text)
             .map(b => b.config.text)
             .join('\n\n');
     }, [layout]);
 
-    const { messages: aiMessages, loading: aiLoading, sendMessage: sendAIMessage } = useAIAssistant(session, profile, aggregateNotes());
+    const currentPagePath = useMemo(() => {
+        if (!currentPage || !pages?.length) return [];
+        const pageById = Object.fromEntries(pages.map((page) => [page.id, page]));
+        const path = [];
+        let page = currentPage;
 
-    const { answer, setAnswer, feedback, loading: quizLoading, submitAnswer, clearFeedback } = useQuiz();
+        while (page) {
+            path.unshift(page);
+            page = page.parent_page_id ? pageById[page.parent_page_id] : null;
+        }
+
+        return path;
+    }, [currentPage, pages]);
+
+    const triggerAutomation = async (triggerType, triggerData) => {
+        if (!selectedRoadmap?.id || !session?.access_token) return;
+        try {
+            await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/automation/trigger`,
+                {
+                    roadmap_id: selectedRoadmap.id,
+                    trigger_type: triggerType,
+                    trigger_data: triggerData,
+                },
+                { headers: { Authorization: `Bearer ${session.access_token}` } }
+            );
+        } catch (err) {
+            console.error(`Automation trigger failed (${triggerType}):`, err);
+        }
+    };
+
+    const { messages: aiMessages, loading: aiLoading, sendMessage: sendAIMessage } = useAIAssistant(session, profile, workspaceNotes);
+
+    const { connections, loading: mcpLoading, saveConnection, removeConnection } = useMCPBridge(selectedRoadmap?.id, session);
+    const [automationRules, setAutomationRules] = useState([]);
+    const [automationLoading, setAutomationLoading] = useState(false);
 
     useEffect(() => {
         if (session?.access_token) {
@@ -124,6 +159,26 @@ export default function Dashboard({ session, profile }) {
             setTimeout(() => setToastMessage(''), 3000);
         }
     };
+
+    useEffect(() => {
+        const loadAutomationRules = async () => {
+            if (!selectedRoadmap?.id || !session?.access_token) return;
+            setAutomationLoading(true);
+            try {
+                const { data } = await axios.get(
+                    `${import.meta.env.VITE_API_URL}/api/automation/${selectedRoadmap.id}`,
+                    { headers: { Authorization: `Bearer ${session.access_token}` } }
+                );
+                setAutomationRules(data.rules || []);
+            } catch (err) {
+                console.error('Failed to load automation rules:', err);
+            } finally {
+                setAutomationLoading(false);
+            }
+        };
+
+        loadAutomationRules();
+    }, [selectedRoadmap, session]);
 
     const handleSearchNavigate = async (item, type) => {
         if (!item) return;
@@ -279,13 +334,26 @@ export default function Dashboard({ session, profile }) {
         }
     };
 
-    const onQuizVerify = (result) => {
+    const onQuizVerify = async (result) => {
         if (result.passed) {
             const otherNodes = nodes.filter(n => n.id !== result.node.id && n.remediation_depth === 0);
             const allDone = otherNodes.every(n => n.status === 'completed');
+
+            await triggerAutomation('node_completed', {
+                node_id: result.node?.id,
+                node_title: result.node?.title,
+                user_email: session?.user?.email,
+                roadmap_title: selectedRoadmap?.title,
+            });
+
             if (allDone) {
                 setShowConfetti(true);
                 handleMint();
+                await triggerAutomation('roadmap_completed', {
+                    roadmap_id: selectedRoadmap?.id,
+                    user_email: session?.user?.email,
+                    completed_at: new Date().toISOString(),
+                });
             }
         }
     };
@@ -425,19 +493,62 @@ export default function Dashboard({ session, profile }) {
                                     onDuplicatePage={handleDuplicatePage}
                                 />
                             )}
-                            <WorkspaceCanvas
-                                layout={layout}
-                                onLayoutChange={handleLayoutChange}
-                                onRemoveBlock={handleRemoveBlock}
-                                onDetachBlock={handleDetachBlock}
-                                onDuplicateBlock={handleDuplicateBlock}
-                                onConfigChange={handleConfigChange}
-                                workspaceNotes={aggregateNotes()}
-                                roadmap={selectedRoadmap}
-                                session={session}
-                                presence={presence}
-                                onCursorMove={(pos) => trackCursor(pos)}
-                            />
+                            <div className="flex-1 flex flex-col overflow-hidden">
+                                <div className="border-b border-slate-800 px-6 py-4 bg-slate-950/95">
+                                    <PageBreadcrumb pagePath={currentPagePath} onNavigate={selectPage} />
+                                <div className="mt-2 text-sm text-slate-400">
+                                    {currentPage ? `Current page: ${currentPage.title}` : 'Select or create a page to begin'}
+                                </div>
+                                </div>
+                                <WorkspaceCanvas
+                                    layout={layout}
+                                    onLayoutChange={handleLayoutChange}
+                                    onRemoveBlock={handleRemoveBlock}
+                                    onDetachBlock={handleDetachBlock}
+                                    onDuplicateBlock={handleDuplicateBlock}
+                                    onConfigChange={handleConfigChange}
+                                    workspaceNotes={workspaceNotes}
+                                    roadmap={selectedRoadmap}
+                                    session={session}
+                                    presence={presence}
+                                    onCursorMove={(pos) => trackCursor(pos)}
+                                    onVerify={onQuizVerify}
+                                />
+                            </div>
+                            {selectedRoadmap && (
+                                <WorkspaceSettings
+                                    roadmap={selectedRoadmap}
+                                    connections={connections}
+                                    automationRules={automationRules}
+                                    onConnect={(service) => saveConnection(service.id, { connectedAt: new Date().toISOString() })}
+                                    onDisconnect={(connection) => removeConnection(connection.id)}
+                                    onCreateRule={async (rule) => {
+                                        if (!selectedRoadmap?.id || !session?.access_token) return;
+                                        try {
+                                            const { data } = await axios.post(
+                                                `${import.meta.env.VITE_API_URL}/api/automation/${selectedRoadmap.id}`,
+                                                rule,
+                                                { headers: { Authorization: `Bearer ${session.access_token}` } }
+                                            );
+                                            setAutomationRules((prev) => [...prev, data.rule]);
+                                        } catch (error) {
+                                            console.error('Failed to save automation rule', error);
+                                        }
+                                    }}
+                                    onDeleteRule={async (ruleId) => {
+                                        if (!session?.access_token) return;
+                                        try {
+                                            await axios.delete(
+                                                `${import.meta.env.VITE_API_URL}/api/automation/${ruleId}`,
+                                                { headers: { Authorization: `Bearer ${session.access_token}` } }
+                                            );
+                                            setAutomationRules((prev) => prev.filter((rule) => rule.id !== ruleId));
+                                        } catch (error) {
+                                            console.error('Failed to delete automation rule', error);
+                                        }
+                                    }}
+                                />
+                            )}
                             {selectedRoadmap && <CollabSidebar roadmapId={selectedRoadmap.id} ownerId={selectedRoadmap.owner_id} />}
                             <BlockPalette onSelect={handleAddBlock} />
                         </>
@@ -461,7 +572,7 @@ export default function Dashboard({ session, profile }) {
                 session={session}
                 roadmap={selectedRoadmap}
                 profile={profile}
-                workspaceNotes={aggregateNotes()}
+                workspaceNotes={workspaceNotes}
                 isOpen={showAI}
                 onToggle={() => setShowAI(!showAI)}
                 messages={aiMessages}

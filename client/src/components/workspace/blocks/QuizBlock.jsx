@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { CheckSquare, Loader2 } from 'lucide-react';
 import useQuiz from '../../../hooks/useQuiz';
 
-export default function QuizBlock({ roadmap, session, config, onConfigChange, workspaceNotes }) {
+export default function QuizBlock({ roadmap, session, config, onConfigChange, workspaceNotes, onVerify }) {
     const activeNode = useMemo(() => {
         return roadmap?.nodes?.find((node) => node.status === 'unlocked') || roadmap?.nodes?.[0];
     }, [roadmap]);
@@ -33,16 +33,19 @@ export default function QuizBlock({ roadmap, session, config, onConfigChange, wo
                     className="w-full h-32 p-4 bg-black/20 text-white rounded-2xl border border-gray-800 focus:border-indigo-600 outline-none text-sm resize-none"
                 />
                 <button
-                    onClick={() => submitAnswer({
-                        nodeId: activeNode.id,
-                        roadmapId: roadmap?.id,
-                        nodeTitle: activeNode.title,
-                        nodeSummary: activeNode.summary,
-                        sequenceOrder: activeNode.sequence_order,
-                        userAnswer: answer,
-                        token: session?.access_token,
-                        workspaceNotes,
-                    })}
+                    onClick={async () => {
+                        const result = await submitAnswer({
+                            nodeId: activeNode.id,
+                            roadmapId: roadmap?.id,
+                            nodeTitle: activeNode.title,
+                            nodeSummary: activeNode.summary,
+                            sequenceOrder: activeNode.sequence_order,
+                            userAnswer: answer,
+                            token: session?.access_token,
+                            workspaceNotes,
+                        });
+                        onVerify?.(result);
+                    }}
                     disabled={loading || !answer.trim()}
                     className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-2"
                 >

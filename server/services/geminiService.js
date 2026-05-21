@@ -138,35 +138,53 @@ ${answersText}
   return parsed;
 }
 
-export async function workspaceChat(message, history, userProfile, workspaceNotes = '') {
-  const personalityContext = buildPersonalityContext(userProfile, workspaceNotes);
+export async function workspaceChat(messageOrPayload, history = [], userProfile, workspaceNotes = '') {
+  let messages = null;
+  let pageContext = '';
+  let inputMessage = '';
+  let inputHistory = [];
+  let effectiveProfile = userProfile || {};
+
+  if (typeof messageOrPayload === 'object' && messageOrPayload !== null && !Array.isArray(messageOrPayload)) {
+    const payload = messageOrPayload;
+    messages = payload.messages || [];
+    pageContext = payload.pageContext || '';
+    effectiveProfile = payload.profile || effectiveProfile;
+    if (!effectiveProfile.mbti_type && payload.mbtiType) {
+      effectiveProfile = { ...effectiveProfile, mbti_type: payload.mbtiType };
+    }
+    inputMessage = messages?.at(-1)?.content || '';
+    inputHistory = (messages || []).map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+  } else {
+    inputMessage = messageOrPayload;
+    inputHistory = (history || []).map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content || msg }],
+    }));
+    pageContext = workspaceNotes || '';
+  }
+
+  const personalityContext = buildPersonalityContext(effectiveProfile, pageContext);
   const modelNoJson = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   const chat = modelNoJson.startChat({
-    history: history.map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    })),
-    generationConfig: {
-      maxOutputTokens: 500,
-    },
+    history: inputHistory,
+    generationConfig: { maxOutputTokens: 500 },
   });
 
   const prompt = `
 ${personalityContext}
 
-You are the user's personal learning companion. 
-Your goal is to help them synthesize information across their workspace, answer questions, and provide guidance.
-You have access to their authored workspace notes below.
+You are the user's personal learning companion. Use the workspace context below to answer clearly.
 
-WORKSPACE NOTES:
-${workspaceNotes}
+Workspace notes:
+${pageContext}
 
-Always maintain your ${userProfile.mbti_type} persona as defined in the context above.
-Be concise, insightful, and environment-aware.
-
-User Message: ${message}
-  `;
+User message: ${inputMessage}
+`;
 
   const result = await chat.sendMessage(prompt);
   return result.response.text();
@@ -200,29 +218,3 @@ ${pageContext}
   }
 }
 
-export async function workspaceChat({ messages, pageContext, mbtiType, profile }) {
-  const userProfile = profile || { mbti_type: mbtiType };
-  const personalityContext = buildPersonalityContext(userProfile);
-  const modelNoJson = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
-  const history = (messages || []).map((msg) => ({
-    role: msg.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: msg.content }],
-  }));
-
-  const chat = modelNoJson.startChat({ history, generationConfig: { maxOutputTokens: 500 } });
-
-  const prompt = `
-${personalityContext}
-
-You are the user's personal learning companion. Use the workspace context below to answer clearly.
-
-Workspace notes:
-${pageContext}
-
-User message: ${messages?.at(-1)?.content || ''}
-`;
-
-  const result = await chat.sendMessage(prompt);
-  return result.response.text();
-}

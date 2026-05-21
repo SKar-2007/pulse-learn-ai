@@ -8,7 +8,19 @@ const router = express.Router();
 // GET /api/workspace/:roadmap_id — get the user's layout (or shared layout)
 router.get('/:roadmap_id', requireAuth, async (req, res) => {
     try {
-        const { is_shared } = req.query; // Client can request shared layout
+        const { is_shared, page_id } = req.query;
+
+        if (page_id) {
+            const { data, error } = await supabase
+                .from('workspace_pages')
+                .select('layout_json')
+                .eq('id', page_id)
+                .eq('user_id', req.user.id)
+                .single();
+
+            if (error && error.code !== 'PGRST116') throw error;
+            return res.json({ layout: data?.layout_json || [] });
+        }
 
         let query = supabase
             .from('workspace_layouts')
@@ -33,7 +45,20 @@ router.get('/:roadmap_id', requireAuth, async (req, res) => {
 // POST /api/workspace/layout — save layout
 router.post('/layout', requireAuth, async (req, res) => {
     try {
-        const { roadmap_id, layout_json, is_shared } = req.body;
+        const { roadmap_id, layout_json, is_shared, page_id } = req.body;
+
+        if (page_id) {
+            const { data, error } = await supabase
+                .from('workspace_pages')
+                .update({ layout_json })
+                .eq('id', page_id)
+                .eq('user_id', req.user.id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return res.json({ success: true, layout: data.layout_json });
+        }
 
         const payload = {
             roadmap_id,

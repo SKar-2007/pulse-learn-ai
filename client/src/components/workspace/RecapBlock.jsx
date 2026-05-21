@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import axios from 'axios';
 
-export default function RecapBlock({ roadmapId, nodes, collaborators, session, profile }) {
+export default function RecapBlock({ config = {}, roadmap, session, profile, workspaceNotes }) {
   const [recap, setRecap] = useState(null);
   const [loading, setLoading] = useState(false);
+  const roadmapId = config.roadmapId || roadmap?.id;
+  const pageContext = workspaceNotes || config.pageContext || JSON.stringify({ nodes: config.nodes, collaborators: config.collaborators });
 
   const generateRecap = async () => {
     setLoading(true);
     try {
-      const pageContext = JSON.stringify({ nodes, collaborators });
       const { data } = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/recap/${roadmapId}`,
         { pageContext, mbtiType: profile?.mbti_type },
-        { headers: { Authorization: `Bearer ${session.access_token}` } }
+        { headers: { Authorization: `Bearer ${session?.access_token}` } }
       );
       setRecap(data.recap);
     } catch (error) {

@@ -1,4 +1,6 @@
-export default function LoopComponentViewer({ component, onEmbed }) {
+export default function LoopComponentViewer({ config = {}, onEmbed }) {
+  const component = config.component || config;
+
   return (
     <div className="h-full w-full p-4 rounded-3xl border border-slate-800 bg-slate-950/80 text-slate-200">
       <div className="flex items-center justify-between gap-3 mb-4">
@@ -15,7 +17,7 @@ export default function LoopComponentViewer({ component, onEmbed }) {
       </div>
       <div className="rounded-3xl border border-slate-800 bg-slate-900 p-4 text-slate-300">
         <p className="text-sm font-semibold text-white">{component?.title || 'Shared component'}</p>
-        <pre className="mt-3 overflow-x-auto text-xs text-slate-400 bg-slate-950 p-3 rounded-2xl">{JSON.stringify(component?.block_config || {}, null, 2)}</pre>
+        <pre className="mt-3 overflow-x-auto text-xs text-slate-400 bg-slate-950 p-3 rounded-2xl">{JSON.stringify(component?.block_config || component, null, 2)}</pre>
       </div>
     </div>
   );

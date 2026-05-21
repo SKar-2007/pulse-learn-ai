@@ -42,26 +42,6 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
         }
     }, [roadmapId, currentPageId, demo, getHeaders]);
 
-    const loadPageLayout = useCallback(async (pageId) => {
-        if (!roadmapId || !pageId || demo) return;
-        setLoading(true);
-        try {
-            const { data } = await axios.get(
-                `${API_URL}/api/workspace/${roadmapId}/pages/${pageId}`,
-                { headers: getHeaders() }
-            );
-            const page = data.page;
-            if (page) {
-                setCurrentPage(page);
-                setLayout(page.layout_json || []);
-            }
-        } catch (err) {
-            console.error('Failed to load page layout:', err);
-        } finally {
-            setLoading(false);
-        }
-    }, [roadmapId, demo, getHeaders]);
-
     const createPage = async (title, parentPageId = null) => {
         if (!roadmapId || demo) return null;
         try {
@@ -103,11 +83,17 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
     };
 
     const loadLayout = useCallback(async () => {
-        if (!roadmapId || demo) return;
+        if (!roadmapId) return;
         setLoading(true);
         try {
+            if (demo) {
+                setLayout(DEMO_LAYOUT);
+                return;
+            }
+
+            const pageQuery = currentPageId ? `&page_id=${currentPageId}` : '';
             const { data } = await axios.get(
-                `${API_URL}/api/workspace/${roadmapId}?is_shared=${isShared}`,
+                `${API_URL}/api/workspace/${roadmapId}?is_shared=${isShared}${pageQuery}`,
                 { headers: getHeaders() }
             );
             setLayout(data.layout || []);
@@ -116,7 +102,7 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
         } finally {
             setLoading(false);
         }
-    }, [roadmapId, demo, isShared, getHeaders]);
+    }, [roadmapId, demo, isShared, currentPageId, getHeaders]);
 
     const saveLayout = async (newLayout) => {
         if (!roadmapId && !demo) return;
@@ -126,19 +112,11 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
         }
 
         try {
-            if (currentPageId) {
-                await axios.post(
-                    `${API_URL}/api/workspace/${roadmapId}/pages/${currentPageId}/layout`,
-                    { layout_json: newLayout },
-                    { headers: getHeaders() }
-                );
-            } else {
-                await axios.post(
-                    `${API_URL}/api/workspace/layout`,
-                    { roadmap_id: roadmapId, layout_json: newLayout, is_shared: isShared },
-                    { headers: getHeaders() }
-                );
-            }
+            await axios.post(
+                `${API_URL}/api/workspace/layout`,
+                { roadmap_id: roadmapId, layout_json: newLayout, is_shared: isShared, page_id: currentPageId },
+                { headers: getHeaders() }
+            );
         } catch (err) {
             console.error('Failed to save workspace:', err);
         }
@@ -156,12 +134,8 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
             return;
         }
 
-        if (currentPageId) {
-            loadPageLayout(currentPageId);
-        } else {
-            loadLayout();
-        }
-    }, [currentPageId, currentPage, demo, loadLayout, loadPageLayout]);
+        loadLayout();
+    }, [currentPageId, demo, loadLayout]);
 
     useEffect(() => {
         const demoMode = DEMO_MODE || session?.access_token === 'demo';
