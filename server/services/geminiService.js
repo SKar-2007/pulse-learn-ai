@@ -5,6 +5,8 @@ const genAI = process.env.GOOGLE_API_KEY ? new GoogleGenerativeAI(process.env.GO
 const requestOptions = { apiVersion: 'v1' };
 const PRIMARY_MODEL = process.env.GEMINI_PRIMARY_MODEL || 'gemini-1.5-pro';
 const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-1.5-flash';
+const LOCAL_LLM_URL = process.env.LLAMA_API_URL || process.env.LOCAL_LLM_URL || '';
+const LOCAL_LLM_MODEL = process.env.LLAMA_MODEL_NAME || process.env.LOCAL_LLM_MODEL || 'llama2';
 
 function isDemoMode(profile = {}) {
   return process.env.DEMO_MODE === 'true'
@@ -18,6 +20,79 @@ function getGenModel(modelName, options = {}) {
     throw new Error('Google Gemini API key is not configured.');
   }
   return genAI.getGenerativeModel({ model: modelName, ...options }, requestOptions);
+}
+
+function isLocalLlamaEnabled() {
+  return Boolean(LOCAL_LLM_URL);
+}
+
+function parseLocalLlamaResult(data) {
+  if (!data) return null;
+  if (data.choices?.[0]?.message?.content) {
+    return data.choices[0].message.content;
+  }
+  if (data.choices?.[0]?.text) {
+    return data.choices[0].text;
+  }
+  if (typeof data.generated_text === 'string') {
+    return data.generated_text;
+  }
+  if (Array.isArray(data.output) && data.output[0]?.content?.[0]?.text) {
+    return data.output[0].content[0].text;
+  }
+  return null;
+}
+
+async function requestLocalLlama(prompt) {
+  const baseUrl = LOCAL_LLM_URL.replace(/\/$/, '');
+  const endpoints = [
+    {
+      path: '/v1/chat/completions',
+      body: {
+        model: LOCAL_LLM_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 500,
+      },
+    },
+    {
+      path: '/v1/completions',
+      body: {
+        model: LOCAL_LLM_MODEL,
+        prompt,
+        temperature: 0.7,
+        max_tokens: 500,
+      },
+    },
+  ];
+
+  let lastError = null;
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(`${baseUrl}${endpoint.path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(endpoint.body),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        lastError = new Error(`Local Llama request failed ${response.status}: ${JSON.stringify(data)}`);
+        continue;
+      }
+
+      const text = parseLocalLlamaResult(data);
+      if (text) {
+        return text;
+      }
+
+      lastError = new Error('Local Llama returned an unexpected response format.');
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError;
 }
 
 /**
@@ -198,8 +273,16 @@ User message: ${inputMessage}
     return 'Demo AI mode: a lightweight response is returned here while demo mode is active. Switch to a full account to access the connected Gemini assistant.';
   }
 
+  if (isLocalLlamaEnabled()) {
+    try {
+      return await requestLocalLlama(prompt);
+    } catch (localError) {
+      console.warn('Local Llama request failed, falling back to Gemini:', localError?.message || localError);
+    }
+  }
+
   if (!genAI) {
-    return 'AI is unavailable because the Gemini API key is not configured. Please enable GOOGLE_API_KEY to use the assistant.';
+    return 'AI is unavailable because the Gemini API key is not configured. Please enable GOOGLE_API_KEY or configure a local Llama model via LLAMA_API_URL.';
   }
 
   try {
