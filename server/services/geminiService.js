@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
 const model = genAI.getGenerativeModel({
   model: 'gemini-1.5-flash',
@@ -39,8 +39,34 @@ export function buildPersonalityContext(profile) {
     humanities: 'Use historical, philosophical, or societal analogies where possible.',
   };
 
+  const mbtiInstructions = {
+    // NT (Analysts) - Logical, systems-focused
+    INTJ: 'Explain things using strategic frameworks and systems. Focus on logical efficiency.',
+    INTP: 'Dive deep into theoretical principles and abstract concepts. Encourage curiosity.',
+    ENTJ: 'Focus on strategic outcomes and mastery of the subject matter.',
+    ENTP: 'Focus on innovative connections and brainstorming potential applications.',
+    // NF (Diplomats) - Empathetic, big-picture
+    INFJ: 'Focus on deep meaning and human impact of the concepts.',
+    INFP: 'Use imaginative analogies and focus on personal growth/values.',
+    ENFJ: 'Focus on collaborative potential and broad societal impact.',
+    ENFP: 'Be enthusiastic and focus on creative big-picture possibilities.',
+    // SJ (Sentinels) - Detailed, practical
+    ISTJ: 'Provide step-by-step, detail-oriented explanations. Focus on accuracy.',
+    ISFJ: 'Provide practical, supportive, and well-structured guidance.',
+    ESTJ: 'Focus on efficient implementation and clear rules/standards.',
+    ESFJ: 'Provide practical, community-focused, and supportive explanations.',
+    // SP (Explorers) - Hands-on, spontaneous
+    ISTP: 'Focus on the mechanics and practical utility of the concepts.',
+    ISFP: 'Focus on aesthetic appeal and hands-on, sensory experiences.',
+    ESTP: 'Be dynamic, focused on immediate application and "real-world" action.',
+    ESFP: 'Be engaging, focused on fun, practical, and immediate benefits.',
+  };
+
   return `
 === LEARNER PERSONALITY PROFILE ===
+MBTI Type: ${profile.mbti_type || 'Unknown'}
+→ ${mbtiInstructions[profile.mbti_type] || 'Use balanced cognitive approaches.'}
+
 Expertise Level: ${profile.expertise_level}
 → ${levelInstructions[profile.expertise_level] || ''}
 

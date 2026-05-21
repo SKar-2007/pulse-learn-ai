@@ -2,20 +2,20 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    generationConfig: { responseMimeType: 'application/json' },
+  model: 'gemini-1.5-flash',
+  generationConfig: { responseMimeType: 'application/json' },
 });
 
 // ── STEP 1: Fetch all raw analytics data for a user ───────────────────────────
 async function fetchUserAnalyticsData(userId) {
-    // Quiz scores over time
-    const { data: quizLogs } = await supabase
-        .from('active_recall_logs')
-        .select(`
+  // Quiz scores over time
+  const { data: quizLogs } = await supabase
+    .from('active_recall_logs')
+    .select(`
       quiz_score,
       completed_at,
       node_id,
@@ -23,29 +23,29 @@ async function fetchUserAnalyticsData(userId) {
         roadmaps (title)
       )
     `)
-        .eq('user_id', userId)
-        .order('completed_at', { ascending: true });
+    .eq('user_id', userId)
+    .order('completed_at', { ascending: true });
 
-    // Node statuses for all roadmaps the user has access to
-    const { data: nodeStatuses } = await supabase
-        .from('nodes')
-        .select(`
+  // Node statuses for all roadmaps the user has access to
+  const { data: nodeStatuses } = await supabase
+    .from('nodes')
+    .select(`
       status,
       estimated_minutes,
       title,
       roadmap_id,
       roadmaps!inner (title, owner_id)
     `)
-        .or(`roadmaps.owner_id.eq.${userId}`);
+    .or(`roadmaps.owner_id.eq.${userId}`);
 
-    return { quizLogs: quizLogs || [], nodeStatuses: nodeStatuses || [] };
+  return { quizLogs: quizLogs || [], nodeStatuses: nodeStatuses || [] };
 }
 
 // ── STEP 2: Ask Gemini to interpret the NL query and build chart config ────────
 export async function processAnalyticsQuery(nlQuery, userId, userProfile) {
-    const rawData = await fetchUserAnalyticsData(userId);
+  const rawData = await fetchUserAnalyticsData(userId);
 
-    const prompt = `
+  const prompt = `
 You are a data analyst for an educational AI platform.
 The user has asked: "${nlQuery}"
 
@@ -79,14 +79,14 @@ Rules:
 - For pie charts, "value" represents the slice size
   `;
 
-    const result = await model.generateContent(prompt);
-    const parsed = JSON.parse(result.response.text());
+  const result = await model.generateContent(prompt);
+  const parsed = JSON.parse(result.response.text());
 
-    // Safety override — Fallback to bar chart if type is invalid
-    const VALID_TYPES = ['line', 'bar', 'horizontalBar', 'pie', 'radar', 'area'];
-    if (!VALID_TYPES.includes(parsed.chartType)) {
-        parsed.chartType = 'bar';
-    }
+  // Safety override — Fallback to bar chart if type is invalid
+  const VALID_TYPES = ['line', 'bar', 'horizontalBar', 'pie', 'radar', 'area'];
+  if (!VALID_TYPES.includes(parsed.chartType)) {
+    parsed.chartType = 'bar';
+  }
 
-    return parsed;
+  return parsed;
 }
