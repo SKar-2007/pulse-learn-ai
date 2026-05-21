@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { MBTI_AI_PROFILES } from '../lib/mbtiProfiles.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
@@ -7,87 +8,37 @@ const model = genAI.getGenerativeModel({
   generationConfig: { responseMimeType: 'application/json' },
 });
 
-// ── PERSONALITY CONTEXT BUILDER ───────────────────────────────────────────────
-export function buildPersonalityContext(profile) {
-  if (!profile) return ''; // Graceful fallback — no personalization if no profile yet
+/**
+ * Builds a personality context prompt for Gemini based on user profile and preferences.
+ */
+export function buildPersonalityContext(userProfile) {
+  if (!userProfile?.mbti_type) return ''; // Graceful fallback
 
-  const toneInstructions = {
-    friendly: 'Use warm, encouraging language. Celebrate small wins. Use "you" directly.',
-    direct: 'Be concise and precise. No filler phrases. Lead with the key point.',
-    socratic: 'Pose guiding questions within your explanation to prompt the user to think. Do not just state facts.',
-    formal: 'Use academic, precise language. Reference concepts formally. Avoid contractions.',
-  };
+  const type = userProfile.mbti_type;
+  const profile = MBTI_AI_PROFILES[type];
 
-  const levelInstructions = {
-    beginner: 'Assume zero prior knowledge. Define every technical term when first used. Use simple analogies.',
-    intermediate: 'Assume basic familiarity. Skip foundational definitions. Focus on "why" not just "what".',
-    advanced: 'Assume strong background. Use technical vocabulary freely. Focus on nuance and edge cases.',
-    expert: 'Treat the user as a peer. Assume deep expertise. Surface only what is non-obvious.',
-  };
-
-  const styleInstructions = {
-    visual: 'Structure explanations as if describing a diagram. Use spatial metaphors. Break into labeled sections.',
-    reading: 'Write dense, well-structured prose. Use headers and sub-points. Prefer written depth.',
-    kinesthetic: 'Ground every concept in a concrete example or worked problem. Lead with the example, explain after.',
-    auditory: 'Write conversationally as if speaking out loud. Use rhythm and repetition naturally.',
-  };
-
-  const domainAnalogies = {
-    computer_science: 'Use programming, systems, and algorithm analogies where possible.',
-    medicine: 'Use clinical, biological, or patient-care analogies where possible.',
-    business: 'Use business strategy, market, or financial analogies where possible.',
-    humanities: 'Use historical, philosophical, or societal analogies where possible.',
-  };
-
-  const mbtiInstructions = {
-    // NT (Analysts) - Logical, systems-focused
-    INTJ: 'Explain things using strategic frameworks and systems. Focus on logical efficiency.',
-    INTP: 'Dive deep into theoretical principles and abstract concepts. Encourage curiosity.',
-    ENTJ: 'Focus on strategic outcomes and mastery of the subject matter.',
-    ENTP: 'Focus on innovative connections and brainstorming potential applications.',
-    // NF (Diplomats) - Empathetic, big-picture
-    INFJ: 'Focus on deep meaning and human impact of the concepts.',
-    INFP: 'Use imaginative analogies and focus on personal growth/values.',
-    ENFJ: 'Focus on collaborative potential and broad societal impact.',
-    ENFP: 'Be enthusiastic and focus on creative big-picture possibilities.',
-    // SJ (Sentinels) - Detailed, practical
-    ISTJ: 'Provide step-by-step, detail-oriented explanations. Focus on accuracy.',
-    ISFJ: 'Provide practical, supportive, and well-structured guidance.',
-    ESTJ: 'Focus on efficient implementation and clear rules/standards.',
-    ESFJ: 'Provide practical, community-focused, and supportive explanations.',
-    // SP (Explorers) - Hands-on, spontaneous
-    ISTP: 'Focus on the mechanics and practical utility of the concepts.',
-    ISFP: 'Focus on aesthetic appeal and hands-on, sensory experiences.',
-    ESTP: 'Be dynamic, focused on immediate application and "real-world" action.',
-    ESFP: 'Be engaging, focused on fun, practical, and immediate benefits.',
-  };
+  if (!profile) return '';
 
   return `
-=== LEARNER PERSONALITY PROFILE ===
-MBTI Type: ${profile.mbti_type || 'Unknown'}
-→ ${mbtiInstructions[profile.mbti_type] || 'Use balanced cognitive approaches.'}
+=== LEARNER COGNITIVE PROFILE (MBTI: ${type} — ${profile.name}) ===
+Cognitive Style: ${profile.cognitiveStyle}
 
-Expertise Level: ${profile.expertise_level}
-→ ${levelInstructions[profile.expertise_level] || ''}
+How to explain concepts: ${profile.explanationApproach}
+How to frame quiz questions: ${profile.quizFraming}
+How to deliver feedback: ${profile.feedbackTone}
+How to frame motivation: ${profile.motivationFrame}
 
-Communication Tone: ${profile.communication_tone}
-→ ${toneInstructions[profile.communication_tone] || ''}
-
-Learning Style: ${profile.learning_style}
-→ ${styleInstructions[profile.learning_style] || ''}
-
-Domain Context: ${profile.study_domain || 'general'}
-→ ${domainAnalogies[profile.study_domain] || 'Use general-purpose analogies.'}
-
-Preferred Session Length: ${profile.preferred_session_minutes} minutes
-→ When estimating node time, bias toward chunks of approximately ${profile.preferred_session_minutes} minutes.
-====================================
+Additional calibration from self-reported preferences:
+- Study domain: ${userProfile.study_domain || 'general'}
+- Preferred session length: ${userProfile.preferred_session_minutes || 30} minutes
+- Bias node time estimates toward ${userProfile.preferred_session_minutes || 30}-minute chunks
+================================================================
 `;
 }
 
 // Updated generateRoadmapFromText
-export async function generateRoadmapFromText(rawText, timeBudgetHours, userProfile) {
-  const personalityContext = buildPersonalityContext(userProfile);
+export async function generateRoadmapFromText(rawText, timeBudgetHours, userProfile, workspaceNotes = '') {
+  const personalityContext = buildPersonalityContext(userProfile, workspaceNotes);
 
   const prompt = `
 ${personalityContext}
@@ -95,7 +46,6 @@ ${personalityContext}
 You are a strict educational architecture engine.
 Adapt the depth, vocabulary, and framing of each node's summary to match the learner profile above.
 The sum of ALL nodes' estimated_minutes MUST equal exactly ${timeBudgetHours * 60} minutes.
-Bias each node's estimated_minutes toward multiples of ${userProfile?.preferred_session_minutes || 30} minutes.
 
 Respond ONLY with valid JSON. No markdown, no prose.
 
@@ -121,8 +71,8 @@ ${rawText}
 }
 
 // Updated generateQuizQuestions
-export async function generateQuizQuestions(nodeTitle, nodeSummary, userProfile) {
-  const personalityContext = buildPersonalityContext(userProfile);
+export async function generateQuizQuestions(nodeTitle, nodeSummary, userProfile, workspaceNotes = '') {
+  const personalityContext = buildPersonalityContext(userProfile, workspaceNotes);
 
   const prompt = `
 ${personalityContext}
@@ -130,9 +80,6 @@ ${personalityContext}
 You are an active recall assessment engine.
 Generate exactly 3 questions that test genuine understanding of the concept below.
 Frame the questions using the learner's domain and tone preferences from the profile above.
-For a 'socratic' tone: make questions probing and open-ended.
-For a 'kinesthetic' style: make questions ask the user to solve a scenario, not just recite.
-For a 'beginner' level: ask conceptual questions, not implementation details.
 
 Respond ONLY with a JSON array of exactly 3 objects. No prose.
 
@@ -152,8 +99,8 @@ Concept Summary: ${nodeSummary}
 }
 
 // Updated evaluateAnswers
-export async function evaluateAnswers(nodeTitle, nodeSummary, userAnswers, userProfile) {
-  const personalityContext = buildPersonalityContext(userProfile);
+export async function evaluateAnswers(nodeTitle, nodeSummary, userAnswers, userProfile, workspaceNotes = '') {
+  const personalityContext = buildPersonalityContext(userProfile, workspaceNotes);
   const answersText = userAnswers.map(a => `Q${a.q_id}: ${a.answer}`).join('\n');
 
   const prompt = `
@@ -161,9 +108,6 @@ ${personalityContext}
 
 You are a strict but empathetic educational evaluator.
 Grade the following answers. Adapt your feedback to the learner's communication tone and expertise level.
-For 'encouraging' tone: frame gaps as "next steps", not failures.
-For 'direct' tone: state the gap precisely in one sentence, no softening.
-For 'beginner' level: explain what was missed in plain language with an example.
 
 Score 0-100. If score < 70, provide a targeted remediation_node.
 
@@ -192,4 +136,38 @@ ${answersText}
   const parsed = JSON.parse(text);
   if (parsed.passed) parsed.remediation_node = null;
   return parsed;
+}
+
+export async function workspaceChat(message, history, userProfile, workspaceNotes = '') {
+  const personalityContext = buildPersonalityContext(userProfile, workspaceNotes);
+  const modelNoJson = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+  const chat = modelNoJson.startChat({
+    history: history.map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    })),
+    generationConfig: {
+      maxOutputTokens: 500,
+    },
+  });
+
+  const prompt = `
+${personalityContext}
+
+You are the user's personal learning companion. 
+Your goal is to help them synthesize information across their workspace, answer questions, and provide guidance.
+You have access to their authored workspace notes below.
+
+WORKSPACE NOTES:
+${workspaceNotes}
+
+Always maintain your ${userProfile.mbti_type} persona as defined in the context above.
+Be concise, insightful, and environment-aware.
+
+User Message: ${message}
+  `;
+
+  const result = await chat.sendMessage(prompt);
+  return result.response.text();
 }

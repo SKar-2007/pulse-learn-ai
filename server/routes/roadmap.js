@@ -77,7 +77,7 @@ router.post(
   '/generate',
   upload.single('syllabus'),
   asyncHandler(async (req, res) => {
-    const { title, timeBudgetHours, targetDate, text } = req.body;
+    const { title, timeBudgetHours, targetDate, text, workspaceNotes } = req.body;
     let syllabusText = text;
 
     if (req.file) {
@@ -104,7 +104,7 @@ router.post(
       targetDate: targetDate || null,
     });
 
-    const { nodes } = await generateRoadmapFromText(syllabusText, parseInt(timeBudgetHours, 10), profile);
+    const { nodes } = await generateRoadmapFromText(syllabusText, parseInt(timeBudgetHours, 10), profile, workspaceNotes);
     await insertNodes(roadmapData.id, nodes);
 
     const fullRoadmap = await getRoadmapDetails(roadmapData.id);

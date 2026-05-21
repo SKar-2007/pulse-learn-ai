@@ -1,6 +1,8 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { createClient } from '@supabase/supabase-js';
+import { scoreMBTI } from '../services/mbtiService.js';
+import { MBTI_AI_PROFILES } from '../lib/mbtiProfiles.js';
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const router = express.Router();
@@ -51,6 +53,66 @@ router.get('/profile', requireAuth, async (req, res) => {
     } catch (err) {
         // Return null instead of error to trigger onboarding if table exists
         res.json({ profile: null });
+    }
+});
+
+// POST /api/user/mbti — scores the test, saves result, returns profile with type name
+router.post('/mbti', requireAuth, async (req, res) => {
+    try {
+        const { answers } = req.body;
+
+        if (!Array.isArray(answers) || answers.length !== 20) {
+            return res.status(400).json({ error: 'Must provide exactly 20 answers' });
+        }
+
+        const { mbtiType, ei_score, sn_score, tf_score, jp_score } = scoreMBTI(answers);
+        const typeProfile = MBTI_AI_PROFILES[mbtiType];
+
+        const { data, error } = await supabase
+            .from('user_profiles')
+            .upsert({
+                user_id: req.user.id,
+                mbti_type: mbtiType,
+                ei_score,
+                sn_score,
+                tf_score,
+                jp_score,
+                updated_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.json({
+            profile: {
+                ...data,
+                typeName: typeProfile.name,
+                cognitiveStyle: typeProfile.cognitiveStyle,
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+import { workspaceChat } from '../services/geminiService.js';
+
+router.post('/chat', requireAuth, async (req, res) => {
+    try {
+        const { message, history, workspaceNotes } = req.body;
+
+        const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', req.user.id)
+            .single();
+
+        const reply = await workspaceChat(message, history || [], profile, workspaceNotes);
+        res.json({ reply });
+    } catch (err) {
+        console.error('Chat error:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 

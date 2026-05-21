@@ -12,6 +12,7 @@ import roadmapRouter from './routes/roadmap.js';
 import nodeRouter from './routes/node.js';
 import analyticsRouter from './routes/analytics.js';
 import collabRouter from './routes/collab.js';
+import workspaceRouter from './routes/workspace.js';
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -31,6 +32,7 @@ app.use('/api/roadmap', roadmapRouter);
 app.use('/api/node', nodeRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/collab', collabRouter);
+app.use('/api/workspace', workspaceRouter);
 
 if (fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath, { maxAge: '1d' }));

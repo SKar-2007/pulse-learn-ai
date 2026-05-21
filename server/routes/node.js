@@ -21,7 +21,7 @@ router.use(requireAuth);
 router.post(
   '/quiz',
   asyncHandler(async (req, res) => {
-    const { nodeId } = req.body;
+    const { nodeId, workspaceNotes } = req.body;
     if (!nodeId) throw new HttpError('nodeId is required.', 400);
 
     const node = await getNodeById(nodeId);
@@ -34,7 +34,7 @@ router.post(
       .eq('user_id', req.user.id)
       .single();
 
-    const questions = await generateQuizQuestions(node.title, node.summary, profile);
+    const questions = await generateQuizQuestions(node.title, node.summary, profile, workspaceNotes);
     res.json({ questions });
   })
 );
@@ -42,7 +42,7 @@ router.post(
 router.post(
   '/verify',
   asyncHandler(async (req, res) => {
-    const { nodeId, roadmapId, userAnswers, userAnswer } = req.body;
+    const { nodeId, roadmapId, userAnswers, userAnswer, workspaceNotes } = req.body;
     if (!nodeId || !roadmapId || (!userAnswers && !userAnswer)) {
       throw new HttpError('Missing required fields.', 400);
     }
@@ -77,7 +77,7 @@ router.post(
       .single();
 
     const answers = userAnswers || [{ q_id: 1, answer: userAnswer }];
-    const evaluation = await evaluateAnswers(node.title, node.summary, answers, profile);
+    const evaluation = await evaluateAnswers(node.title, node.summary, answers, profile, workspaceNotes);
 
     let updatedNode = null;
     if (evaluation.passed) {
