@@ -1,0 +1,12 @@
+--- Auth Debug Script ---
+Checking/Creating user: copilot-test+1@pulselearn.ai
+User already exists (or status 422), proceeding to sign in.
+Signing in...
+Ensuring profile exists...
+Error creating profile: Could not find the table 'public.user_profiles' in the schema cache
+
+--- SUCCESS ---
+SESSION_TOKEN:
+eyJhbGciOiJFUzI1NiIsImtpZCI6ImVkZWM4OTRmLTk5MzktNGVkOS1hMjYxLTRkY2Y4NWJmZGJlZiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL3loemh0YmViZHN4cmd3enRzeGtsLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiIyMTQ3NTAxNy1iNjIyLTQ1ODQtYmRmYS1hYjRhZjg5NjE4NGIiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzc5MzY2OTI0LCJpYXQiOjE3NzkzNjMzMjQsImVtYWlsIjoiY29waWxvdC10ZXN0KzFAcHVsc2VsZWFybi5haSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzc5MzYzMzI0fV0sInNlc3Npb25faWQiOiI1YzRmYzhlMi0wYjRlLTQyMjAtYjdmOS03NGI1OTgzMGRiYWIiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.WdrbKcuHf2yoBarbtUEdEK-J1_A-4XBHRi6HdeLZ7RGnPbVeAfU4w8AOpBZxXMtYix9cbURs-zVsRKjjQ0W0-w
+----------------
+
