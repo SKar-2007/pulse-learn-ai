@@ -125,4 +125,70 @@ router.post('/:roadmap_id/pages', requireAuth, async (req, res) => {
     }
 });
 
+// GET /api/workspace/:roadmap_id/pages/:page_id — load a specific page and its layout
+router.get('/:roadmap_id/pages/:page_id', requireAuth, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('workspace_pages')
+            .select('id, title, icon, parent_page_id, sequence_order, layout_json, roadmap_id')
+            .match({ id: req.params.page_id, roadmap_id: req.params.roadmap_id, user_id: req.user.id })
+            .single();
+
+        if (error) throw error;
+        res.json({ page: data });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/workspace/:roadmap_id/pages/:page_id/layout — save page-specific layout
+router.post('/:roadmap_id/pages/:page_id/layout', requireAuth, async (req, res) => {
+    try {
+        const { layout_json } = req.body;
+        const { data, error } = await supabase
+            .from('workspace_pages')
+            .update({ layout_json })
+            .match({ id: req.params.page_id, roadmap_id: req.params.roadmap_id, user_id: req.user.id })
+            .select()
+            .single();
+
+        if (error) throw error;
+        res.json({ success: true, layout: data.layout_json });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/workspace/:roadmap_id/pages/:page_id/duplicate — duplicate a page
+router.post('/:roadmap_id/pages/:page_id/duplicate', requireAuth, async (req, res) => {
+    try {
+        const { title } = req.body;
+        const { data: original, error: originalError } = await supabase
+            .from('workspace_pages')
+            .select('title, icon, parent_page_id, layout_json')
+            .match({ id: req.params.page_id, roadmap_id: req.params.roadmap_id, user_id: req.user.id })
+            .single();
+
+        if (originalError) throw originalError;
+
+        const { data, error } = await supabase
+            .from('workspace_pages')
+            .insert({
+                roadmap_id: req.params.roadmap_id,
+                user_id: req.user.id,
+                title: title || `Copy of ${original.title}`,
+                icon: original.icon,
+                parent_page_id: original.parent_page_id,
+                layout_json: original.layout_json || [],
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        res.json({ page: data });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 export default router;
