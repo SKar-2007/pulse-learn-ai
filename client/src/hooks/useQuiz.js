@@ -1,40 +1,39 @@
 import { useState } from 'react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import axios from 'axios';
 
 export default function useQuiz() {
   const [answer, setAnswer] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const submitAnswer = async ({ nodeId, userAnswer, expectedSummary, roadmapId, token }) => {
+  const submitAnswer = async ({ nodeId, userAnswers, userAnswer, roadmapId, token }) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/node/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/node/verify`,
+        {
+          nodeId,
+          roadmapId,
+          userAnswers: userAnswers || [{ q_id: 1, answer: userAnswer }]
         },
-        body: JSON.stringify({ nodeId, userAnswer, expectedSummary, roadmapId }),
-      });
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error || 'Quiz verification failed');
-      }
-
-      setFeedback(data.feedback || 'Review complete.');
-      return { score: data.score ?? 0, feedback: data.feedback };
+      setFeedback(data.feedback);
+      return data;
     } catch (error) {
-      setFeedback(error.message);
-      return { score: 0, feedback: error.message };
+      console.error('Quiz verification failed:', error);
+      setFeedback(error.response?.data?.error || 'Verification failed');
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
-  const clearFeedback = () => setFeedback(null);
+  const clearFeedback = () => {
+    setFeedback(null);
+    setAnswer('');
+  };
 
   return { answer, setAnswer, feedback, loading, submitAnswer, clearFeedback };
 }

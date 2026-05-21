@@ -14,6 +14,7 @@ export default function useRoadmap() {
   });
 
   const loadRoadmaps = useCallback(async (token) => {
+    if (!token) return;
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/roadmap`, {
@@ -32,7 +33,7 @@ export default function useRoadmap() {
   }, []);
 
   const loadRoadmap = useCallback(async (roadmapId, token) => {
-    if (!roadmapId) return;
+    if (!roadmapId || !token) return;
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/roadmap/${roadmapId}`, {
@@ -43,7 +44,7 @@ export default function useRoadmap() {
         throw new Error(data?.error || 'Unable to load roadmap');
       }
       setSelectedRoadmap(data.roadmap);
-      setNodes(data.nodes || []);
+      setNodes(data.roadmap.nodes || []);
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -61,5 +62,6 @@ export default function useRoadmap() {
     loadRoadmaps,
     loadRoadmap,
     setSelectedRoadmap,
+    setNodes,
   };
 }
