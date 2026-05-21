@@ -74,23 +74,18 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-          <div className="absolute top-[30%] left-[20%] w-64 h-64 bg-indigo-500 rounded-full blur-[100px] animate-pulse" />
-        </div>
-
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="relative z-10 flex flex-col items-center gap-6"
+          className="flex flex-col items-center gap-4"
         >
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-gray-800 rounded-full"></div>
-            <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin absolute top-0 left-0 shadow-[0_0_20px_rgba(99,102,241,0.4)]"></div>
+          <div className="w-16 h-16 rounded-full border border-white/20 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-full border border-white/50 animate-spin" />
           </div>
           <div className="text-center">
-            <h2 className="text-white font-bold tracking-widest uppercase text-xs mb-1">Pulse-Learn AI</h2>
-            <p className="text-gray-500 text-[10px] font-medium animate-pulse">Syncing your learning engine...</p>
+            <h2 className="text-xl font-semibold uppercase tracking-[0.35em]">Pulse-Learn</h2>
+            <p className="text-sm text-white/70">Loading workspace…</p>
           </div>
         </motion.div>
       </div>

@@ -12,16 +12,16 @@ export default function MBTIInsights({ profile }) {
     ];
 
     return (
-        <div className="bg-gray-900/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
+        <div className="bg-black/90/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-50" />
 
             <div className="relative z-10">
                 <div className="flex items-center justify-between mb-10">
                     <div>
                         <h2 className="text-4xl font-black text-white tracking-tight mb-2">
-                            {mbti_type} <span className="text-indigo-400 font-light text-2xl ml-2">Personality</span>
+                            {mbti_type} <span className="text-white/60 font-light text-2xl ml-2">Personality</span>
                         </h2>
-                        <p className="text-sm text-gray-400 font-medium uppercase tracking-[0.2em]">Cognitive Profile Analysis</p>
+                        <p className="text-sm text-white/50 font-medium uppercase tracking-[0.2em]">Cognitive Profile Analysis</p>
                     </div>
                 </div>
 
@@ -38,11 +38,11 @@ export default function MBTIInsights({ profile }) {
                                 transition={{ delay: idx * 0.1 }}
                             >
                                 <div className="flex justify-between items-end mb-4">
-                                    <span className={`text-[10px] font-black uppercase tracking-widest ${leansLeft ? 'text-indigo-400' : 'text-gray-600'}`}>{dim.left}</span>
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${leansLeft ? 'text-white/60' : 'text-white/50'}`}>{dim.left}</span>
                                     <span className="text-xs font-bold text-white uppercase tracking-tighter flex items-center gap-2">
                                         {dim.icon} {dim.label}
                                     </span>
-                                    <span className={`text-[10px] font-black uppercase tracking-widest ${!leansLeft ? 'text-indigo-400' : 'text-gray-600'}`}>{dim.right}</span>
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${!leansLeft ? 'text-white/60' : 'text-white/50'}`}>{dim.right}</span>
                                 </div>
                                 <div className="h-4 bg-black/40 rounded-full overflow-hidden border border-white/5 relative shadow-inner">
                                     <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/10 z-10" />
@@ -59,7 +59,7 @@ export default function MBTIInsights({ profile }) {
                 </div>
 
                 <div className="mt-12 p-6 bg-white/5 rounded-3xl border border-white/5">
-                    <p className="text-sm text-gray-300 leading-relaxed italic">
+                    <p className="text-sm text-white/60 leading-relaxed italic">
                         "Your cognitive style indicates a preference for {dimensions.find(d => Math.abs(d.score) > 2.5)?.label.toLowerCase() || 'balanced'} discovery.
                         Gemini has calibrated all assessing engine parameters to match this profile."
                     </p>

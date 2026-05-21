@@ -19,10 +19,10 @@ export default function WorkspaceCursors({ presence, currentUserId }) {
                         >
                             <MousePointer2
                                 size={18}
-                                className="text-indigo-500 fill-indigo-500 shadow-xl"
+                                className="text-white fill-white shadow-black/20"
                                 style={{ transform: 'rotate(-90deg)' }}
                             />
-                            <div className="ml-4 mt-2 px-2 py-1 bg-indigo-600 text-white text-[8px] font-bold rounded-lg shadow-lg whitespace-nowrap">
+                            <div className="ml-4 mt-2 px-2 py-1 bg-white/10 text-white text-[8px] font-bold rounded-lg shadow-lg whitespace-nowrap">
                                 {state.email?.split('@')[0] || 'Learning Peer'}
                             </div>
                         </motion.div>

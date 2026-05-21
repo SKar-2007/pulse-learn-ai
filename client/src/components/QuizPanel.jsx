@@ -66,44 +66,42 @@ export default function QuizPanel({ node, onVerify, session }) {
   if (!node) return null;
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-3xl p-6 shadow-xl">
+    <div className="bg-black/90 border border-white/10 rounded-3xl p-6 shadow-none">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center">
+        <div className="w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center">
           <HelpCircle size={20} />
         </div>
         <div>
           <h3 className="text-white font-bold">Active Recall</h3>
-          <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold">{node.title}</p>
+          <p className="text-xs text-white/60 uppercase tracking-widest font-semibold">{node.title}</p>
         </div>
       </div>
 
       {loading ? (
         <div className="py-12 flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-          <p className="text-sm text-gray-500 animate-pulse">Generating personalized questions...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-white" />
+          <p className="text-sm text-white/60 animate-pulse">Generating personalized questions...</p>
         </div>
       ) : result ? (
         <div className="space-y-6">
-          <div className={`p-6 rounded-2xl border ${result.passed ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+          <div className="p-6 rounded-2xl border border-white/10 bg-white/5">
             <div className="flex items-center justify-between mb-4">
-              <span className={`text-2xl font-black ${result.passed ? 'text-green-400' : 'text-red-400'}`}>
-                {Math.round(result.score)}%
-              </span>
-              {result.passed ? <CheckCircle className="text-green-400" /> : <XCircle className="text-red-400" />}
+              <span className="text-2xl font-black text-white">{Math.round(result.score)}%</span>
+              {result.passed ? <CheckCircle className="text-white" /> : <XCircle className="text-white" />}
             </div>
-            <p className="text-sm text-gray-300 leading-relaxed">{result.feedback}</p>
+            <p className="text-sm text-white/70 leading-relaxed">{result.feedback}</p>
           </div>
 
           {!result.passed && result.new_remediation_node && (
-            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-              <p className="text-xs font-bold text-amber-400 uppercase tracking-tighter mb-1">Remediation Node Created</p>
-              <p className="text-xs text-amber-200/70">A new node has been added to your tree to help you master this concept.</p>
+            <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
+              <p className="text-xs font-bold text-white uppercase tracking-tighter mb-1">Remediation Node Created</p>
+              <p className="text-xs text-white/60">A new node has been added to your tree to help you master this concept.</p>
             </div>
           )}
 
           <button
             onClick={fetchQuestions}
-            className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition-all"
+            className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-all"
           >
             Retry Quiz
           </button>
@@ -112,15 +110,15 @@ export default function QuizPanel({ node, onVerify, session }) {
         <div className="space-y-6">
           {questions.map((q, i) => (
             <div key={q.q_id} className="space-y-3">
-              <p className="text-sm text-gray-300 font-medium">
-                <span className="text-indigo-400 mr-2">{i + 1}.</span>
+              <p className="text-sm text-white/80 font-medium">
+                <span className="text-white/60 mr-2">{i + 1}.</span>
                 {q.question}
               </p>
               <textarea
                 value={answers.find(a => a.q_id === q.q_id)?.answer || ''}
                 onChange={(e) => handleAnswerChange(q.q_id, e.target.value)}
                 placeholder="Type your explanation..."
-                className="w-full bg-gray-950 border border-gray-800 rounded-xl p-4 text-sm text-white focus:border-indigo-500 outline-none transition-all resize-none"
+                className="w-full bg-black/95 border border-white/10 rounded-xl p-4 text-sm text-white focus:border-white/20 outline-none transition-all resize-none"
                 rows={3}
               />
             </div>
@@ -129,7 +127,7 @@ export default function QuizPanel({ node, onVerify, session }) {
           <button
             onClick={handleSubmit}
             disabled={submitting || answers.some(a => !a.answer.trim())}
-            className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+            className="w-full py-4 bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
           >
             {submitting ? <Loader2 size={18} className="animate-spin" /> : <><Send size={18} /> Submit Assessment</>}
           </button>

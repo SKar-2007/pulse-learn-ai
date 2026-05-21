@@ -25,11 +25,11 @@ const BLOCK_COMPONENTS = {
     loop_component: LoopComponentViewer,
     recap: RecapBlock,
     ai_chat: ({ workspaceNotes }) => (
-      <div className="h-full w-full p-4 rounded-3xl border border-dashed border-slate-700 bg-slate-950/70 text-slate-200 flex flex-col justify-center items-center text-center gap-3">
-        <MessageSquare size={28} className="text-indigo-400" />
+      <div className="h-full w-full p-4 rounded-3xl border border-dashed border-white/10 bg-white/5 text-white flex flex-col justify-center items-center text-center gap-3">
+        <MessageSquare size={28} className="text-white" />
         <p className="text-sm font-semibold">AI Assistant</p>
-        <p className="max-w-xs text-xs text-slate-400">Open the AI sidebar and ask it to summarize or update this workspace.</p>
-        <pre className="mt-3 max-w-full overflow-x-auto text-[10px] text-slate-500 bg-slate-900 p-2 rounded-2xl">{workspaceNotes || 'No notes available'}</pre>
+        <p className="max-w-xs text-xs text-white/60">Open the AI sidebar and ask it to summarize or update this workspace.</p>
+        <pre className="mt-3 max-w-full overflow-x-auto text-[10px] text-white/60 bg-black/90 p-2 rounded-2xl">{workspaceNotes || 'No notes available'}</pre>
       </div>
     ),
 };
@@ -51,14 +51,14 @@ export default function WorkspaceCanvas({ layout, onLayoutChange, onRemoveBlock,
         if (!Component) return <div className="p-4 bg-red-900/20 text-red-400">Unknown Block</div>;
 
         return (
-            <div className="h-full w-full bg-gray-900/50 backdrop-blur-md border border-gray-800 rounded-3xl overflow-hidden shadow-xl group relative">
+            <div className="h-full w-full bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-none group relative">
                 <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
                     <div className="relative group">
-                      <button className="p-1.5 bg-gray-800 hover:bg-slate-700 text-gray-300 rounded-lg transition-all">⋯</button>
-                      <div className="hidden group-hover:flex absolute right-0 top-10 z-20 flex-col rounded-2xl bg-slate-950 border border-slate-800 shadow-xl overflow-hidden w-52">
-                        <button onClick={() => onDetachBlock?.(item)} className="text-left px-4 py-3 text-xs text-slate-200 hover:bg-slate-900">🔗 Share as Loop Component</button>
-                        <button onClick={() => onDuplicateBlock?.(item)} className="text-left px-4 py-3 text-xs text-slate-200 hover:bg-slate-900">📋 Duplicate Block</button>
-                        <button onClick={() => onRemoveBlock(item.i)} className="text-left px-4 py-3 text-xs text-rose-400 hover:bg-slate-900">🗑 Remove Block</button>
+                      <button className="p-1.5 bg-black/80 hover:bg-white/10 text-white rounded-lg transition-all">⋯</button>
+                      <div className="hidden group-hover:flex absolute right-0 top-10 z-20 flex-col rounded-2xl bg-black/95 border border-white/10 overflow-hidden w-52">
+                        <button onClick={() => onDetachBlock?.(item)} className="text-left px-4 py-3 text-xs text-white/80 hover:bg-white/10">🔗 Share as Loop Component</button>
+                        <button onClick={() => onDuplicateBlock?.(item)} className="text-left px-4 py-3 text-xs text-white/80 hover:bg-white/10">📋 Duplicate Block</button>
+                        <button onClick={() => onRemoveBlock(item.i)} className="text-left px-4 py-3 text-xs text-white/70 hover:bg-white/10">🗑 Remove Block</button>
                       </div>
                     </div>
                 </div>
@@ -78,7 +78,7 @@ export default function WorkspaceCanvas({ layout, onLayoutChange, onRemoveBlock,
 
     return (
         <div
-            className="flex-1 overflow-y-auto p-4 bg-gray-950 relative"
+            className="flex-1 overflow-y-auto p-4 bg-black/95 relative"
             onMouseMove={handleMouseMove}
         >
             <WorkspaceCursors presence={presence || {}} currentUserId={session?.user?.id} />
@@ -102,12 +102,12 @@ export default function WorkspaceCanvas({ layout, onLayoutChange, onRemoveBlock,
             </ResponsiveGridLayout>
 
             {layout.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-gray-700 py-32">
-                    <div className="w-20 h-20 border-2 border-dashed border-gray-800 rounded-3xl flex items-center justify-center mb-6">
+                <div className="h-full flex flex-col items-center justify-center text-white/70 py-32">
+                    <div className="w-20 h-20 border-2 border-dashed border-white/10 rounded-3xl flex items-center justify-center mb-6">
                         <Plus size={32} className="opacity-20" />
                     </div>
-                    <p className="text-lg font-medium">Your workspace is empty</p>
-                    <p className="text-sm">Press <kbd className="px-2 py-1 bg-gray-900 rounded border border-gray-800 text-gray-500">/</kbd> or click the button below to add blocks</p>
+                    <p className="text-lg font-medium text-white">Your workspace is empty</p>
+                    <p className="text-sm">Press <kbd className="px-2 py-1 bg-white/10 rounded border border-white/10 text-white/60">/</kbd> or click the button below to add blocks</p>
                 </div>
             )}
         </div>

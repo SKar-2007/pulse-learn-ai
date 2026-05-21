@@ -20,7 +20,7 @@ export default function ChartBlock({ config }) {
 
     return (
         <div className="h-full flex flex-col p-6">
-            <div className="flex items-center gap-2 mb-6 drag-handle cursor-grab active:cursor-grabbing text-indigo-400">
+            <div className="flex items-center gap-2 mb-6 drag-handle cursor-grab active:cursor-grabbing text-white/60">
                 <BarChart2 size={18} />
                 <h3 className="font-bold text-white text-sm uppercase tracking-widest">Analytics</h3>
             </div>

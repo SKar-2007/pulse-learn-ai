@@ -7,7 +7,7 @@ export default function PresenceBar({ presence }) {
     if (users.length <= 1) return null; // Don't show if it's just the current user
 
     return (
-        <div className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full">
+        <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full">
             <div className="flex -space-x-2 mr-2">
                 <AnimatePresence>
                     {users.map((u, i) => (
@@ -16,7 +16,7 @@ export default function PresenceBar({ presence }) {
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0, opacity: 0 }}
-                            className="w-6 h-6 rounded-full bg-indigo-600 border-2 border-gray-950 flex items-center justify-center text-[10px] font-bold text-white uppercase"
+                            className="w-6 h-6 rounded-full bg-white/20 border-2 border-white/10 flex items-center justify-center text-[10px] font-bold text-white uppercase"
                             title={`User ${u.user_id} is online`}
                         >
                             {u.user_id[0].toUpperCase()}
@@ -24,7 +24,7 @@ export default function PresenceBar({ presence }) {
                     ))}
                 </AnimatePresence>
             </div>
-            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest animate-pulse">
+            <span className="text-[10px] font-bold text-white uppercase tracking-widest animate-pulse">
                 {users.length} Active Now
             </span>
         </div>

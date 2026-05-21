@@ -46,7 +46,7 @@ export default function AnalyticsDashboard() {
     return (
         <div className="p-6 max-w-4xl mx-auto">
             <div className="flex items-center gap-3 mb-8">
-                <BarChart2 className="text-indigo-400 w-6 h-6" />
+                <BarChart2 className="text-white/60 w-6 h-6" />
                 <h2 className="text-2xl font-bold text-white">Learning Analytics</h2>
             </div>
 
@@ -58,13 +58,12 @@ export default function AnalyticsDashboard() {
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && runQuery()}
                     placeholder='Ask anything... e.g. "Show my progress as a line chart"'
-                    className="flex-1 px-5 py-3 bg-gray-800 text-white rounded-xl border border-gray-600 
-            focus:border-indigo-500 outline-none placeholder-gray-500"
+                    className="flex-1 px-5 py-3 bg-black/90 text-white rounded-xl border border-white/10 focus:border-white/10 outline-none placeholder-white/30"
                 />
                 <button
                     onClick={() => runQuery()}
                     disabled={loading}
-                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 
+                    className="px-6 py-3 bg-white/10 hover:bg-white/20 disabled:opacity-50 
             text-white font-medium rounded-xl transition-all flex items-center gap-2"
                 >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Generate'}
@@ -77,8 +76,7 @@ export default function AnalyticsDashboard() {
                     <button
                         key={q}
                         onClick={() => runQuery(q)}
-                        className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 
-              rounded-full border border-gray-600 transition-all"
+                        className="text-xs px-3 py-1.5 bg-black/90 hover:bg-white/10 text-white/60 rounded-full border border-white/10 transition-all"
                     >
                         {q}
                     </button>
@@ -96,14 +94,14 @@ export default function AnalyticsDashboard() {
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-6"
                     >
-                        <p className="text-gray-500 text-xs mb-2 italic">"{chart.query}"</p>
+                        <p className="text-white/40 text-xs mb-2 italic">"{chart.query}"</p>
                         <ChartRenderer config={chart} />
                     </motion.div>
                 ))}
             </AnimatePresence>
 
             {charts.length === 0 && !loading && (
-                <div className="text-center py-20 text-gray-600">
+                <div className="text-center py-20 text-white/50">
                     <BarChart2 className="w-12 h-12 mx-auto mb-4 opacity-30" />
                     <p>Ask a question above to visualize your learning data.</p>
                 </div>

@@ -20,7 +20,7 @@ function transformData(data) {
 export default function ChartRenderer({ config }) {
     if (!config || !config.data || config.data.length === 0) {
         return (
-            <div className="flex items-center justify-center h-48 text-gray-500 text-sm">
+            <div className="flex items-center justify-center h-48 text-white/40 text-sm">
                 {config?.description || 'No data available for this query.'}
             </div>
         );
@@ -104,14 +104,14 @@ export default function ChartRenderer({ config }) {
                 );
 
             default:
-                return <p className="text-gray-400 text-sm">Unknown chart type: {config.chartType}</p>;
+                return <p className="text-white/50 text-sm">Unknown chart type: {config.chartType}</p>;
         }
     };
 
     return (
-        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-700">
+        <div className="bg-black/90 rounded-2xl p-6 border border-white/10">
             <h3 className="text-white font-semibold mb-1">{config.title}</h3>
-            <p className="text-gray-400 text-xs mb-6">{config.description}</p>
+            <p className="text-white/50 text-xs mb-6">{config.description}</p>
             <ResponsiveContainer width="100%" height={280}>
                 {renderChart()}
             </ResponsiveContainer>

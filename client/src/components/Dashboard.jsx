@@ -371,7 +371,7 @@ export default function Dashboard({ session, profile }) {
     };
 
     return (
-        <div className="min-h-screen bg-gray-950 text-gray-100 flex relative font-sans">
+        <div className="min-h-screen bg-black text-white flex relative font-sans">
             {showConfetti && <ReactConfetti numberOfPieces={200} recycle={false} gravity={0.1} />}
 
             {/* Profile Overlay */}
@@ -398,15 +398,15 @@ export default function Dashboard({ session, profile }) {
             </AnimatePresence>
 
             {/* Sidebar Navigation */}
-            <div className="w-20 bg-gray-900/80 border-r border-gray-800 flex flex-col items-center py-8 gap-8 backdrop-blur-xl z-30">
-                <div className="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-indigo-500/20">P</div>
+            <div className="w-20 bg-black border-r border-white/10 flex flex-col items-center py-8 gap-8 z-30">
+                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center font-black text-2xl">P</div>
 
                 <nav className="flex flex-col gap-6 flex-1 mt-8">
                     {roadmaps.map(r => (
                         <button
                             key={r.id}
                             onClick={() => handleSelectRoadmap(r)}
-                            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${selectedRoadmap?.id === r.id ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-500 hover:bg-gray-700'}`}
+                            className={`w-12 h-12 rounded-2xl border border-white/10 bg-white/5 text-white flex items-center justify-center transition-all ${selectedRoadmap?.id === r.id ? 'border-white text-white' : 'border-white/10 text-white/60 hover:border-white/30'}`}
                             title={r.title}
                         >
                             {r.title[0].toUpperCase()}
@@ -414,7 +414,7 @@ export default function Dashboard({ session, profile }) {
                     ))}
                     <button
                         onClick={() => setActiveTab('upload')}
-                        className="w-12 h-12 border-2 border-dashed border-gray-700 rounded-2xl flex items-center justify-center text-gray-600 hover:border-indigo-500 hover:text-indigo-500 transition-all"
+                        className="w-12 h-12 rounded-2xl border border-white/10 bg-black text-white/70 hover:border-white/30 hover:text-white transition-all flex items-center justify-center"
                     >
                         <Upload size={20} />
                     </button>
@@ -422,7 +422,7 @@ export default function Dashboard({ session, profile }) {
 
                 <button
                     onClick={() => supabase.auth.signOut()}
-                    className="p-3 text-gray-500 hover:text-white hover:bg-red-900/30 rounded-xl transition-all"
+                    className="p-3 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-all"
                 >
                     <LogOut size={20} />
                 </button>
@@ -431,17 +431,17 @@ export default function Dashboard({ session, profile }) {
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Header */}
-                <header className="h-20 border-b border-gray-800 flex items-center justify-between px-8 bg-gray-950/50 backdrop-blur-md sticky top-0 z-20">
+                <header className="h-20 border-b border-white/10 flex items-center justify-between px-8 bg-black sticky top-0 z-20">
                     <div
                         onClick={() => setShowProfile(true)}
                         className="cursor-pointer group"
                     >
-                        <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-4 group-hover:text-indigo-400 transition-colors">
+                        <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-4 transition-colors">
                             {selectedRoadmap ? selectedRoadmap.title : 'Welcome to Pulse-Learn'}
                             {selectedRoadmap && <PresenceBar presence={presence} />}
                         </h1>
-                        <p className="text-[10px] uppercase tracking-widest font-bold text-gray-500 group-hover:text-gray-400 transition-colors">
-                            {profile.mbti_type} • {profile.study_domain || 'General'} • {profile.expertise_level} • <span className="text-indigo-500 font-black">View Cognitive Profile</span>
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-white/60">
+                            {profile.mbti_type} • {profile.study_domain || 'General'} • {profile.expertise_level} • <span className="text-white font-black">View Cognitive Profile</span>
                         </p>
                     </div>
 
@@ -450,14 +450,14 @@ export default function Dashboard({ session, profile }) {
                             <>
                                 <button
                                     onClick={() => setIsShared(!isShared)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isShared ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-gray-900 text-gray-400 hover:bg-gray-800'}`}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 bg-white/5 text-white ${isShared ? 'shadow-none' : ''}`}
                                 >
                                     <Users size={14} />
                                     {isShared ? 'Collaborative' : 'Private'}
                                 </button>
                                 <button
                                     onClick={() => setShowAI(!showAI)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all text-sm font-bold ${showAI ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300 shadow-lg shadow-indigo-500/10' : 'bg-gray-900 border-gray-800 text-gray-400 hover:border-indigo-500/50 hover:text-indigo-300'}`}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-white text-sm font-bold transition-all ${showAI ? 'shadow-none' : ''}`}
                                     title="AI Companion"
                                 >
                                     <Sparkles size={16} className={showAI ? 'animate-pulse' : ''} />
@@ -465,7 +465,7 @@ export default function Dashboard({ session, profile }) {
                                 </button>
                                 <button
                                     onClick={() => setShowTemplates(true)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-full border bg-slate-900 border-slate-800 text-slate-400 hover:border-indigo-500/50 hover:text-indigo-300 transition-all font-bold"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-white transition-all font-bold"
                                     title="Workspace Templates"
                                 >
                                     <Layout size={16} />
@@ -473,12 +473,12 @@ export default function Dashboard({ session, profile }) {
                                 </button>
                             </>
                         )}
-                        <div className="flex items-center gap-3 pl-4 border-l border-gray-800">
+                        <div className="flex items-center gap-3 pl-4 border-l border-white/10">
                             <div className="text-right">
                                 <p className="text-sm font-bold text-white leading-tight">{session.user.email.split('@')[0]}</p>
-                                <p className="text-[10px] font-medium text-indigo-400">Learning OS v3.0</p>
+                                <p className="text-[10px] font-medium text-white/60">Learning OS v3.0</p>
                             </div>
-                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-sm font-black shadow-lg shadow-indigo-500/10">
+                            <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-sm font-black shadow-none">
                                 {session.user.email[0].toUpperCase()}
                             </div>
                         </div>
@@ -515,9 +515,9 @@ export default function Dashboard({ session, profile }) {
                                 />
                             )}
                             <div className="flex-1 flex flex-col overflow-hidden">
-                                <div className="border-b border-slate-800 px-6 py-4 bg-slate-950/95">
+                                <div className="border-b border-white/10 px-6 py-4 bg-black/95/95">
                                     <PageBreadcrumb pagePath={currentPagePath} onNavigate={selectPage} />
-                                <div className="mt-2 text-sm text-slate-400">
+                                <div className="mt-2 text-sm text-white/50">
                                     {currentPage ? `Current page: ${currentPage.title}` : 'Select or create a page to begin'}
                                 </div>
                                 </div>
@@ -584,7 +584,7 @@ export default function Dashboard({ session, profile }) {
             />
 
             {toastMessage && (
-                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-indigo-600 text-white text-xs font-bold rounded-full shadow-2xl z-50 animate-bounce">
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-white/10 text-white text-xs font-bold rounded-full shadow-2xl z-50 animate-bounce">
                     {toastMessage}
                 </div>
             )}
@@ -622,12 +622,12 @@ function NavIcon({ icon, active, onClick, label }) {
             onClick={onClick}
             title={label}
             className={`p-3 rounded-xl transition-all duration-200 ${active
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                : 'text-gray-500 hover:text-white hover:bg-gray-800'
+                ? 'bg-white/10 text-white shadow-lg shadow-indigo-500/30'
+                : 'text-white/40 hover:text-white hover:bg-black/90'
                 }`}
         >
             {icon}
-            <span className="absolute left-full ml-4 px-2 py-1 bg-gray-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+            <span className="absolute left-full ml-4 px-2 py-1 bg-black/90 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
                 {label}
             </span>
         </button>

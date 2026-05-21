@@ -3,7 +3,7 @@ export default function PageSidebar({ pages, currentPageId, onPageSelect, onNewP
     <div key={page.id} className="space-y-1">
       <div
         onClick={() => onPageSelect(page.id)}
-        className={`flex items-center justify-between gap-2 rounded-2xl px-3 py-2 text-sm transition cursor-pointer ${currentPageId === page.id ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-900'}`}
+        className={`flex items-center justify-between gap-2 rounded-2xl px-3 py-2 text-sm transition cursor-pointer border border-white/5 ${currentPageId === page.id ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5'}`}
         style={{ paddingLeft: `${depth * 16 + 12}px` }}
       >
         <span>{page.icon || '📄'}</span>
@@ -12,14 +12,14 @@ export default function PageSidebar({ pages, currentPageId, onPageSelect, onNewP
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onRenamePage(page); }}
-            className="text-xs text-slate-400 hover:text-white"
+            className="text-xs text-white/40 hover:text-white"
           >
             ✎
           </button>
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onDeletePage(page); }}
-            className="text-xs text-rose-400 hover:text-red-300"
+            className="text-xs text-white/50 hover:text-white"
           >
             🗑
           </button>
@@ -52,20 +52,20 @@ export default function PageSidebar({ pages, currentPageId, onPageSelect, onNewP
   const tree = buildPageTree(pages || []);
 
   return (
-    <aside className="w-72 bg-slate-950 border-r border-slate-800 p-4 flex flex-col gap-4 overflow-y-auto">
+    <aside className="w-72 panel-simple overflow-y-auto">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Pages</p>
+          <p className="text-[10px] uppercase tracking-[0.35em] text-white/50">Pages</p>
           <h2 className="text-sm font-semibold text-white">Workspace hierarchy</h2>
         </div>
-        <button onClick={() => onNewPage()} className="text-indigo-400 text-xs">+ New</button>
+        <button onClick={() => onNewPage()} className="text-sm text-white/80 hover:text-white">+ New</button>
       </div>
       <div className="space-y-2">{tree.map((page) => renderPage(page))}</div>
       <div className="mt-4 space-y-2">
-        <button onClick={onDuplicatePage} className="w-full rounded-2xl border border-slate-800 px-4 py-3 text-sm text-slate-200 hover:border-indigo-500 hover:text-white transition">Duplicate current page</button>
-        <button onClick={onSaveAsTemplate} className="w-full rounded-2xl border border-slate-800 px-4 py-3 text-sm text-slate-200 hover:border-indigo-500 hover:text-white transition">Save page as template</button>
+        <button onClick={onDuplicatePage} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10">Duplicate current page</button>
+        <button onClick={onSaveAsTemplate} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10">Save page as template</button>
       </div>
-      <button onClick={onNewSubpage} className="mt-4 rounded-2xl border border-slate-800 px-4 py-3 text-sm text-slate-200 hover:border-indigo-500 hover:text-white transition">New subpage</button>
+      <button onClick={onNewSubpage} className="mt-4 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10">New subpage</button>
     </aside>
   );
 }

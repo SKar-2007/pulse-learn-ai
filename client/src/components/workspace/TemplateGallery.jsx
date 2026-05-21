@@ -37,19 +37,19 @@ export default function TemplateGallery({ isOpen, onClose, onApply, savedTemplat
         <AnimatePresence>
             {isOpen && (
                 <>
-                    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xl z-[60]" onClick={onClose} />
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-[60]" onClick={onClose} />
                     <motion.div
                         initial={{ opacity: 0, y: 40 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 40 }}
-                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl bg-slate-950 border border-slate-800 rounded-[2.5rem] shadow-[0_35px_120px_rgba(15,23,42,0.65)] z-[70] overflow-hidden"
+                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl bg-black/95 border border-white/10 rounded-[2.5rem] shadow-[0_35px_120px_rgba(0,0,0,0.45)] z-[70] overflow-hidden"
                     >
-                        <div className="p-8 border-b border-slate-800 flex flex-col gap-3 bg-slate-950/80">
+                        <div className="p-8 border-b border-white/10 flex flex-col gap-3 bg-black/95">
                             <div>
                                 <h2 className="text-3xl font-black text-white tracking-tight">Workspace Templates</h2>
-                                <p className="text-sm text-slate-400 font-medium max-w-2xl">Pick a curated layout that matches your learning goal, then refine the workspace with AI-powered guidance.</p>
+                                <p className="text-sm text-white/60 font-medium max-w-2xl">Pick a curated layout that matches your learning goal, then refine the workspace with AI-powered guidance.</p>
                             </div>
-                            <div className="flex items-center gap-3 text-xs uppercase tracking-[0.35em] text-slate-500">
+                            <div className="flex items-center gap-3 text-xs uppercase tracking-[0.35em] text-white/40">
                                 <Sparkles size={14} />
                                 <span>Designed for faster knowledge flow</span>
                             </div>
@@ -57,7 +57,7 @@ export default function TemplateGallery({ isOpen, onClose, onApply, savedTemplat
 
                         <div className="p-8 overflow-y-auto max-h-[70vh] space-y-6">
                             <div>
-                                <h3 className="text-sm uppercase tracking-[0.35em] text-slate-500 mb-4">Built-in templates</h3>
+                                <h3 className="text-sm uppercase tracking-[0.35em] text-white/40 mb-4">Built-in templates</h3>
                                 <div className="grid grid-cols-1 gap-4">
                                     {TEMPLATES.map((tmpl) => (
                                         <motion.button
@@ -68,26 +68,26 @@ export default function TemplateGallery({ isOpen, onClose, onApply, savedTemplat
                                                 onApply(tmpl.preview.map((type, index) => ({ i: `${tmpl.id}-${index}`, x: index * 4, y: 0, w: type === 'notes' ? 12 : 6, h: type === 'progress' ? 2 : 4, type, config: {} })));
                                                 onClose();
                                             }}
-                                            className="group rounded-[2rem] border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-6 text-left shadow-lg shadow-indigo-500/10 transition-all hover:border-indigo-500/70"
+                                            className="group rounded-[2rem] border border-white/10 bg-black/95 p-6 text-left shadow-lg shadow-black/20 transition-all hover:border-white/20"
                                         >
                                             <div className="flex items-start justify-between gap-4">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-14 h-14 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-indigo-300 shadow-inner shadow-black/20 transition-all group-hover:bg-indigo-600">
+                                                    <div className="w-14 h-14 rounded-3xl bg-black/90 border border-white/10 flex items-center justify-center text-white shadow-inner shadow-black/30 transition-all group-hover:bg-white/10">
                                                         {tmpl.icon}
                                                     </div>
                                                     <div>
                                                         <h3 className="text-xl font-black text-white">{tmpl.name}</h3>
-                                                        <p className="text-sm text-slate-400 mt-1 max-w-xl">{tmpl.desc}</p>
+                                                        <p className="text-sm text-white/60 mt-1 max-w-xl">{tmpl.desc}</p>
                                                     </div>
                                                 </div>
-                                                <span className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.35em] text-indigo-300">Apply</span>
+                                                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.35em] text-white">Apply</span>
                                             </div>
 
                                             <div className="mt-6 grid grid-cols-3 gap-3">
                                                 {tmpl.preview.map((type, index) => (
-                                                    <div key={type + index} className="rounded-3xl border border-slate-800 bg-slate-950/90 p-3 text-[11px] text-slate-400 flex flex-col justify-between min-h-[94px] overflow-hidden">
-                                                        <span className="font-bold text-slate-100">{TYPE_LABELS[type]}</span>
-                                                        <span className="text-[10px] text-slate-500">{type === 'notes' ? 'Large notes area' : type === 'quiz' ? 'Active practice' : type === 'progress' ? 'Progress summary' : 'Structured flow'}</span>
+                                                    <div key={type + index} className="rounded-3xl border border-white/10 bg-black/90 p-3 text-[11px] text-white/60 flex flex-col justify-between min-h-[94px] overflow-hidden">
+                                                        <span className="font-bold text-white">{TYPE_LABELS[type]}</span>
+                                                        <span className="text-[10px] text-white/50">{type === 'notes' ? 'Large notes area' : type === 'quiz' ? 'Active practice' : type === 'progress' ? 'Progress summary' : 'Structured flow'}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -98,12 +98,12 @@ export default function TemplateGallery({ isOpen, onClose, onApply, savedTemplat
                             <div>
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                     <div>
-                                        <h3 className="text-sm uppercase tracking-[0.35em] text-slate-500">Saved page templates</h3>
-                                        <p className="text-xs text-slate-500">Reuse your own page layouts across workspaces.</p>
+                                        <h3 className="text-sm uppercase tracking-[0.35em] text-white/40">Saved page templates</h3>
+                                        <p className="text-xs text-white/40">Reuse your own page layouts across workspaces.</p>
                                     </div>
                                 </div>
                                 {savedTemplates.length === 0 ? (
-                                    <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6 text-sm text-slate-400">
+                                    <div className="rounded-3xl border border-white/10 bg-black/90 p-6 text-sm text-white/60">
                                         No saved templates yet. Save a page from the workspace sidebar to make it reusable here.
                                     </div>
                                 ) : (
@@ -117,16 +117,16 @@ export default function TemplateGallery({ isOpen, onClose, onApply, savedTemplat
                                                     onApply(tmpl.layout || []);
                                                     onClose();
                                                 }}
-                                                className="group rounded-[2rem] border border-slate-800 bg-slate-950/90 p-6 text-left shadow-lg shadow-slate-900/10 transition-all hover:border-indigo-500/70"
+                                                className="group rounded-[2rem] border border-white/10 bg-black/90 p-6 text-left shadow-lg shadow-black/10 transition-all hover:border-white/20"
                                             >
                                                 <div className="flex items-start justify-between gap-4">
                                                     <div>
                                                         <h3 className="text-xl font-black text-white">{tmpl.name}</h3>
-                                                        <p className="text-sm text-slate-400 mt-1 max-w-xl">{tmpl.description}</p>
+                                                        <p className="text-sm text-white/60 mt-1 max-w-xl">{tmpl.description}</p>
                                                     </div>
-                                                    <span className="text-[10px] uppercase tracking-[0.35em] text-slate-500">Saved</span>
+                                                    <span className="text-[10px] uppercase tracking-[0.35em] text-white/40">Saved</span>
                                                 </div>
-                                                <div className="mt-4 text-[10px] text-slate-500">From page: {tmpl.originPage}</div>
+                                                <div className="mt-4 text-[10px] text-white/50">From page: {tmpl.originPage}</div>
                                             </motion.button>
                                         ))}
                                     </div>

@@ -25,15 +25,15 @@ export default function RecapBlock({ config = {}, roadmap, session, profile, wor
   };
 
   return (
-    <div className="h-full w-full p-4 space-y-4 rounded-3xl border border-slate-800 bg-slate-950/80 text-slate-200">
+    <div className="h-full w-full p-4 space-y-4 rounded-3xl border border-white/10 bg-black/90 text-white">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-white">AI Recap</h3>
-          <p className="text-xs text-slate-500">Generate a summary of this page and its progress.</p>
+          <p className="text-xs text-white/60">Generate a summary of this page and its progress.</p>
         </div>
         <button
           onClick={generateRecap}
-          className="rounded-full bg-indigo-600 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white hover:bg-indigo-500 transition"
+          className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white hover:bg-white/10 transition"
           disabled={loading}
         >
           {loading ? 'Generating…' : 'Regenerate'}
@@ -52,7 +52,7 @@ export default function RecapBlock({ config = {}, roadmap, session, profile, wor
           </div>
         </div>
       ) : (
-        <p className="text-sm text-slate-500">Click regenerate to create an AI recap for this page.</p>
+        <p className="text-sm text-white/60">Click regenerate to create an AI recap for this page.</p>
       )}
     </div>
   );
@@ -60,16 +60,16 @@ export default function RecapBlock({ config = {}, roadmap, session, profile, wor
 
 function SummaryCard({ title, items }) {
   return (
-    <div className="rounded-3xl border border-slate-800 bg-slate-900 p-4">
-      <p className="text-xs uppercase tracking-[0.22em] text-slate-500 mb-2">{title}</p>
+    <div className="rounded-3xl border border-white/10 bg-black/90 p-4">
+      <p className="text-xs uppercase tracking-[0.22em] text-white/50 mb-2">{title}</p>
       {items?.length ? (
-        <ul className="space-y-2 text-sm text-slate-300">
+        <ul className="space-y-2 text-sm text-white/80">
           {items.map((item, index) => (
             <li key={index} className="list-disc list-inside">{item}</li>
           ))}
         </ul>
       ) : (
-        <p className="text-xs text-slate-500">No items available yet.</p>
+        <p className="text-xs text-white/50">No items available yet.</p>
       )}
     </div>
   );

@@ -41,21 +41,21 @@ export default function MBTITest({ session, onComplete }) {
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="min-h-screen bg-gray-950 flex items-center justify-center p-8"
+                className="min-h-screen bg-black/95 flex items-center justify-center p-8"
             >
                 <div className="max-w-md w-full text-center">
                     <div className="text-7xl mb-6">🧠</div>
-                    <h2 className="text-4xl font-bold text-indigo-400 mb-2">{result.mbti_type}</h2>
-                    <p className="text-gray-300 text-lg mb-2">
+                    <h2 className="text-4xl font-bold text-white/60 mb-2">{result.mbti_type}</h2>
+                    <p className="text-white/60 text-lg mb-2">
                         You are: <span className="text-white font-semibold">{result.typeName}</span>
                     </p>
-                    <p className="text-gray-400 text-sm leading-relaxed mb-8">{result.cognitiveStyle}</p>
-                    <p className="text-indigo-300 text-sm mb-8">
+                    <p className="text-white/50 text-sm leading-relaxed mb-8">{result.cognitiveStyle}</p>
+                    <p className="text-white/60 text-sm mb-8">
                         Pulse-Learn AI will now adapt every lesson, quiz, and piece of feedback to match how your mind works.
                     </p>
                     <button
                         onClick={() => onComplete(result)}
-                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl text-lg transition-all"
+                        className="w-full py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl text-lg transition-all"
                     >
                         Enter My Learning Workspace →
                     </button>
@@ -65,15 +65,15 @@ export default function MBTITest({ session, onComplete }) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center p-8">
+        <div className="min-h-screen bg-black/95 flex items-center justify-center p-8">
             <div className="max-w-lg w-full">
-                <div className="mb-2 flex justify-between text-xs text-gray-500">
+                <div className="mb-2 flex justify-between text-xs text-white/40">
                     <span>Question {currentQ + 1} of {MBTI_QUESTIONS.length}</span>
                     <span>{Math.round(progress)}% complete</span>
                 </div>
-                <div className="h-1 bg-gray-800 rounded-full mb-10 overflow-hidden">
+                <div className="h-1 bg-black/90 rounded-full mb-10 overflow-hidden">
                     <motion.div
-                        className="h-full bg-indigo-500 rounded-full"
+                        className="h-full bg-white/10 rounded-full"
                         animate={{ width: `${progress}%` }}
                         transition={{ duration: 0.3 }}
                     />
@@ -87,7 +87,7 @@ export default function MBTITest({ session, onComplete }) {
                         exit={{ opacity: 0, x: -30 }}
                         transition={{ duration: 0.25 }}
                     >
-                        <p className="text-xs text-indigo-400 font-mono uppercase tracking-wider mb-4">
+                        <p className="text-xs text-white/60 font-mono uppercase tracking-wider mb-4">
                             {question.dimension === 'EI' && 'Energy Direction'}
                             {question.dimension === 'SN' && 'Information Processing'}
                             {question.dimension === 'TF' && 'Decision Making'}
@@ -106,10 +106,9 @@ export default function MBTITest({ session, onComplete }) {
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => handleAnswer(choice)}
-                                        className="w-full text-left px-6 py-5 rounded-2xl border border-gray-700 bg-gray-900 
-                      hover:border-indigo-500 hover:bg-indigo-950 transition-all duration-200 text-white text-base"
+                                        className="w-full text-left px-6 py-5 rounded-2xl border border-white/10 bg-black/90 hover:border-white/10 hover:bg-white/10 transition-all duration-200 text-white text-base"
                                     >
-                                        <span className="text-indigo-400 font-mono mr-3">{choice}.</span>
+                                        <span className="text-white/60 font-mono mr-3">{choice}.</span>
                                         {opt.label}
                                     </motion.button>
                                 );
@@ -122,7 +121,7 @@ export default function MBTITest({ session, onComplete }) {
                     <motion.p
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-center text-indigo-400 mt-10 animate-pulse text-sm"
+                        className="text-center text-white/60 mt-10 animate-pulse text-sm"
                     >
                         Analyzing your cognitive profile...
                     </motion.p>

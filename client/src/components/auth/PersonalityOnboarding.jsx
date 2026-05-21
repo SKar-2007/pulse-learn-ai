@@ -7,7 +7,7 @@ const STEPS = [
     {
         key: 'expertise_level',
         question: "What's your current proficiency?",
-        icon: <GraduationCap className="text-indigo-400" size={24} />,
+        icon: <GraduationCap className="text-white/60" size={24} />,
         options: [
             { value: 'beginner', label: 'Beginner', desc: 'Start with core fundamentals', icon: '🌱' },
             { value: 'intermediate', label: 'Intermediate', desc: 'Build on existing knowledge', icon: '📚' },
@@ -40,7 +40,7 @@ const STEPS = [
     {
         key: 'study_domain',
         question: 'What is your primary domain?',
-        icon: <Target className="text-green-400" size={24} />,
+        icon: <Target className="text-white/60" size={24} />,
         options: [
             { value: 'computer_science', label: 'Tech & CS', desc: 'Algorithms and systems', icon: '💻' },
             { value: 'medicine', label: 'Medicine', desc: 'Clinical and biological', icon: '🏥' },
@@ -51,7 +51,7 @@ const STEPS = [
     {
         key: 'preferred_session_minutes',
         question: 'Ideal session length?',
-        icon: <Clock className="text-amber-400" size={24} />,
+        icon: <Clock className="text-white/60" size={24} />,
         options: [
             { value: 15, label: 'Turbo', desc: '15 min focused bursts', icon: '⚡' },
             { value: 30, label: 'Standard', desc: '30 min Pomodoro blocks', icon: '📐' },
@@ -106,22 +106,22 @@ export default function PersonalityOnboarding({ session, onComplete }) {
 
     if (step === -1) {
         return (
-            <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6 relative overflow-hidden">
+            <div className="min-h-screen bg-black/95 flex items-center justify-center p-6 relative overflow-hidden">
                 {/* Background Blobs */}
                 <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
-                    <div className="absolute top-[20%] left-[10%] w-64 h-64 bg-indigo-600 rounded-full blur-[100px] animate-pulse" />
+                    <div className="absolute top-[20%] left-[10%] w-64 h-64 bg-white/10 rounded-full blur-[100px] animate-pulse" />
                     <div className="absolute bottom-[20%] right-[10%] w-64 h-64 bg-blue-600 rounded-full blur-[100px] animate-pulse delay-1000" />
                 </div>
                 <div className="max-w-xl w-full z-10">
                     <header className="mb-12 text-center">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full mb-6">
-                            <Sparkles size={14} className="text-indigo-400" />
-                            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Psychometric Phase</span>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/10/20 rounded-full mb-6">
+                            <Sparkles size={14} className="text-white/60" />
+                            <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Psychometric Phase</span>
                         </div>
                         <h1 className="text-4xl font-black text-white tracking-tight mb-4">
                             Discover Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">MBTI Type</span>
                         </h1>
-                        <p className="text-gray-400 font-medium">This helps us tailor the AI's teaching patterns to your cognition.</p>
+                        <p className="text-white/50 font-medium">This helps us tailor the AI's teaching patterns to your cognition.</p>
                     </header>
                     <MBTITest onComplete={handleMBTIComplete} />
                 </div>
@@ -132,10 +132,10 @@ export default function PersonalityOnboarding({ session, onComplete }) {
     const current = STEPS[step];
 
     return (
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6 relative overflow-hidden">
+        <div className="min-h-screen bg-black/95 flex items-center justify-center p-6 relative overflow-hidden">
             {/* Background Blobs */}
             <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
-                <div className="absolute top-[20%] left-[10%] w-64 h-64 bg-indigo-600 rounded-full blur-[100px] animate-pulse" />
+                <div className="absolute top-[20%] left-[10%] w-64 h-64 bg-white/10 rounded-full blur-[100px] animate-pulse" />
                 <div className="absolute bottom-[20%] right-[10%] w-64 h-64 bg-blue-600 rounded-full blur-[100px] animate-pulse delay-1000" />
             </div>
 
@@ -143,21 +143,21 @@ export default function PersonalityOnboarding({ session, onComplete }) {
                 {!saving ? (
                     <>
                         <header className="mb-12 text-center">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full mb-6">
-                                <Sparkles size={14} className="text-indigo-400" />
-                                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Initialization Phase</span>
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/10/20 rounded-full mb-6">
+                                <Sparkles size={14} className="text-white/60" />
+                                <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Initialization Phase</span>
                             </div>
                             <h1 className="text-4xl font-black text-white tracking-tight mb-4">
                                 Calibrating Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">Persona</span>
                             </h1>
-                            <p className="text-gray-400 font-medium">Step {step + 1} of {STEPS.length} — Build your unique learning engine.</p>
+                            <p className="text-white/50 font-medium">Step {step + 1} of {STEPS.length} — Build your unique learning engine.</p>
                         </header>
 
-                        <div className="bg-gray-900/50 backdrop-blur-xl border border-gray-800 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden">
+                        <div className="bg-black/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden">
                             {/* Progress Bar */}
-                            <div className="absolute top-0 left-0 h-1 bg-gray-800 w-full">
+                            <div className="absolute top-0 left-0 h-1 bg-black/90 w-full">
                                 <motion.div
-                                    className="h-full bg-gradient-to-r from-indigo-600 to-blue-500"
+                                    className="h-full bg-gradient-to-r from-white/10 to-blue-500"
                                     initial={{ width: 0 }}
                                     animate={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
                                 />
@@ -172,7 +172,7 @@ export default function PersonalityOnboarding({ session, onComplete }) {
                                     transition={{ duration: 0.3 }}
                                 >
                                     <div className="flex items-center gap-4 mb-8">
-                                        <div className="p-3 bg-gray-950 rounded-2xl border border-gray-800">
+                                        <div className="p-3 bg-black/95 rounded-2xl border border-white/10">
                                             {current.icon}
                                         </div>
                                         <h2 className="text-2xl font-bold text-white leading-tight">{current.question}</h2>
@@ -185,15 +185,15 @@ export default function PersonalityOnboarding({ session, onComplete }) {
                                                 onClick={() => handleSelect(opt.value)}
                                                 className={`group text-left p-6 rounded-2xl border transition-all duration-300 relative overflow-hidden
                           ${answers[current.key] === opt.value
-                                                        ? 'bg-indigo-600 border-indigo-400 shadow-lg shadow-indigo-900/40'
-                                                        : 'bg-gray-950/50 border-gray-800 hover:border-gray-600 hover:bg-gray-900'}`}
+                                                        ? 'bg-white/10 border-white/10 shadow-lg shadow-black/20'
+                                                        : 'bg-black/95 border-white/10 hover:border-white/10 hover:bg-black/90'}`}
                                             >
                                                 <div className="relative z-10">
                                                     <div className="text-2xl mb-3">{opt.icon}</div>
-                                                    <h3 className={`font-bold transition-colors ${answers[current.key] === opt.value ? 'text-white' : 'text-gray-200'}`}>
+                                                    <h3 className={`font-bold transition-colors ${answers[current.key] === opt.value ? 'text-white' : 'text-white/70'}`}>
                                                         {opt.label}
                                                     </h3>
-                                                    <p className={`text-xs mt-1 transition-colors ${answers[current.key] === opt.value ? 'text-white/70' : 'text-gray-500'}`}>
+                                                    <p className={`text-xs mt-1 transition-colors ${answers[current.key] === opt.value ? 'text-white/70' : 'text-white/40'}`}>
                                                         {opt.desc}
                                                     </p>
                                                 </div>
@@ -216,10 +216,10 @@ export default function PersonalityOnboarding({ session, onComplete }) {
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-gray-900/50 backdrop-blur-xl border border-gray-800 rounded-[2.5rem] p-12 text-center"
+                        className="bg-black/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-12 text-center"
                     >
-                        <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-8 relative">
-                            <div className="absolute inset-0 bg-indigo-600 rounded-3xl animate-ping opacity-20" />
+                        <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-8 relative">
+                            <div className="absolute inset-0 bg-white/10 rounded-3xl animate-ping opacity-20" />
                             <Zap size={40} className="text-white fill-white" />
                         </div>
                         <h2 className="text-3xl font-black text-white mb-4">Building Your Engine</h2>
@@ -230,9 +230,9 @@ export default function PersonalityOnboarding({ session, onComplete }) {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: i * 0.4 }}
-                                    className="flex items-center gap-3 text-gray-400 text-sm"
+                                    className="flex items-center gap-3 text-white/50 text-sm"
                                 >
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
                                     {text}
                                 </motion.div>
                             ))}

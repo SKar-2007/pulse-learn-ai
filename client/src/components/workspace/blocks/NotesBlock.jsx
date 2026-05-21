@@ -69,26 +69,26 @@ export default function NotesBlock({ roadmap, session, config, onConfigChange, w
 
     return (
         <div className="h-full flex flex-col">
-            <div className="flex flex-col gap-3 border-b border-gray-800 p-4 drag-handle cursor-grab active:cursor-grabbing">
+            <div className="flex flex-col gap-3 border-b border-white/10 p-4 drag-handle cursor-grab active:cursor-grabbing">
                 <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                        <FileText className="text-indigo-400" size={16} />
+                        <FileText className="text-white/60" size={16} />
                         <h3 className="font-bold text-white text-xs uppercase tracking-widest">Study Notes</h3>
                     </div>
                     <div className="flex gap-1">
                         <button
                             onClick={() => editor.chain().focus().toggleBold().run()}
-                            className={`p-1 rounded ${editor.isActive('bold') ? 'bg-indigo-600' : 'bg-gray-800 hover:bg-gray-700'}`}
+                            className={`p-1 rounded ${editor.isActive('bold') ? 'bg-white/10' : 'bg-black/90 hover:bg-black/85'}`}
                         >
                             <Bold size={12} />
                         </button>
                         <button
                             onClick={() => editor.chain().focus().toggleItalic().run()}
-                            className={`p-1 rounded ${editor.isActive('italic') ? 'bg-indigo-600' : 'bg-gray-800 hover:bg-gray-700'}`}
+                            className={`p-1 rounded ${editor.isActive('italic') ? 'bg-white/10' : 'bg-black/90 hover:bg-black/85'}`}
                         >
                             <Italic size={12} />
                         </button>
-                        <div className="w-px h-4 bg-gray-800 mx-1" />
+                        <div className="w-px h-4 bg-black/90 mx-1" />
                         <button
                             onClick={async () => {
                                 const text = editor.getText();
@@ -103,15 +103,15 @@ export default function NotesBlock({ roadmap, session, config, onConfigChange, w
                                 );
                                 editor.chain().focus().insertContent(`<p><strong>AI Summary:</strong></p><p>${data.reply}</p>`).run();
                             }}
-                            className="flex items-center gap-1 px-2 py-1 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 rounded text-[8px] font-black uppercase text-indigo-400 transition-all"
+                            className="flex items-center gap-1 px-2 py-1 bg-white/10 hover:bg-white/10/20 border border-white/10/30 rounded text-[8px] font-black uppercase text-white/60 transition-all"
                         >
                             <Sparkles size={10} /> Summarize
                         </button>
                     </div>
                 </div>
-                <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
-                    <span>Type <span className="font-semibold text-slate-200">/ai</span> then press Enter to generate AI study guidance.</span>
-                    {commandLoading && <span className="text-indigo-300">Running AI command...</span>}
+                <div className="flex items-center justify-between gap-3 text-xs text-white/40">
+                    <span>Type <span className="font-semibold text-white">/ai</span> then press Enter to generate AI study guidance.</span>
+                    {commandLoading && <span className="text-white/60">Running AI command...</span>}
                 </div>
             </div>
             <div className="flex-1 overflow-hidden">

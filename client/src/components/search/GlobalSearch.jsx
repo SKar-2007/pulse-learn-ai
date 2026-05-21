@@ -46,13 +46,13 @@ export default function GlobalSearch({ session, onNavigate }) {
     <div>
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-6">
-          <div className="w-full max-w-2xl rounded-3xl border border-slate-800 bg-slate-950/95 shadow-2xl backdrop-blur-xl">
-            <div className="p-5 border-b border-slate-800">
+          <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-black/95/95 shadow-2xl backdrop-blur-xl">
+            <div className="p-5 border-b border-white/10">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search pages, nodes, notes..."
-                className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-white outline-none focus:border-indigo-500"
+                className="w-full rounded-2xl border border-white/10 bg-black/90 px-4 py-3 text-sm text-white outline-none focus:border-white/10"
               />
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-4">
@@ -64,7 +64,7 @@ export default function GlobalSearch({ session, onNavigate }) {
               />
             </div>
           </div>
-          <button className="absolute right-8 top-8 text-slate-400 hover:text-white" onClick={() => setOpen(false)}>
+          <button className="absolute right-8 top-8 text-white/50 hover:text-white" onClick={() => setOpen(false)}>
             Close
           </button>
         </div>

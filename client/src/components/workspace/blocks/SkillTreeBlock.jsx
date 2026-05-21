@@ -4,16 +4,16 @@ export default function SkillTreeBlock({ roadmap }) {
     const nodes = roadmap?.nodes || [];
 
     const colors = {
-        locked: 'bg-gray-800 border-gray-700 text-gray-500',
-        unlocked: 'bg-indigo-900/20 border-indigo-500/40 text-indigo-300',
-        completed: 'bg-green-900/20 border-green-500/40 text-green-400',
-        remediation: 'bg-orange-900/20 border-orange-500/40 text-orange-400',
+        locked: 'bg-black/90 border-white/10 text-white/40',
+        unlocked: 'bg-white/10 border-white/10 text-white/60',
+        completed: 'bg-white/10 border-white/10 text-white/70',
+        remediation: 'bg-white/10 border-white/10 text-white/70',
     };
 
     return (
         <div className="h-full flex flex-col p-6">
             <div className="flex items-center gap-2 mb-6 drag-handle cursor-grab active:cursor-grabbing">
-                <GitBranch className="text-indigo-400" size={18} />
+                <GitBranch className="text-white/60" size={18} />
                 <h3 className="font-bold text-white text-sm uppercase tracking-widest">Skill Tree</h3>
             </div>
 
@@ -32,7 +32,7 @@ export default function SkillTreeBlock({ roadmap }) {
                         <Box size={14} className="opacity-40" />
                     </div>
                 )) : (
-                    <div className="h-full flex items-center justify-center text-gray-600 text-xs italic">
+                    <div className="h-full flex items-center justify-center text-white/50 text-xs italic">
                         Select a roadmap to view nodes
                     </div>
                 )}
