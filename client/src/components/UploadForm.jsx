@@ -51,9 +51,14 @@ export default function UploadForm({ token, onCreated }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-3xl border border-slate-800 bg-slate-950/80 p-6 shadow-xl shadow-slate-950/10">
-      <h2 className="text-xl font-semibold text-slate-100">Generate a roadmap</h2>
-      <p className="mt-2 text-sm text-slate-400">Upload a syllabus PDF or paste text to build a personalized learning path.</p>
+    <form onSubmit={handleSubmit} className="app-card">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-100">Generate a roadmap</h2>
+          <p className="mt-2 text-sm text-slate-400">Upload a syllabus PDF or paste text to create a structured learning path.</p>
+        </div>
+        <span className="rounded-full bg-slate-800 px-3 py-1 text-xs uppercase tracking-[0.3em] text-slate-400">Minimal</span>
+      </div>
 
       <div className="mt-6 grid gap-4">
         <label className="block text-sm text-slate-300">
@@ -61,7 +66,7 @@ export default function UploadForm({ token, onCreated }) {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-100"
+            className="input-base"
             placeholder="AI fundamentals roadmap"
             required
           />
@@ -74,7 +79,7 @@ export default function UploadForm({ token, onCreated }) {
             min="1"
             value={hours}
             onChange={(e) => setHours(Number(e.target.value))}
-            className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-100"
+            className="input-base"
             required
           />
         </label>
@@ -84,8 +89,9 @@ export default function UploadForm({ token, onCreated }) {
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="mt-2 h-32 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-100"
+            className="textarea-base"
             placeholder="Paste syllabus text here if you are not uploading a PDF"
+            rows="5"
           />
         </label>
 
@@ -95,17 +101,13 @@ export default function UploadForm({ token, onCreated }) {
             type="file"
             accept="application/pdf"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-100"
+            className="input-base"
           />
         </label>
       </div>
 
-      <div className="mt-6 flex items-center justify-between gap-4">
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-full bg-indigo-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-slate-600"
-        >
+      <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <button type="submit" disabled={loading} className="btn-primary">
           {loading ? 'Generating…' : 'Generate roadmap'}
         </button>
         <p className="text-sm text-slate-400">{message}</p>

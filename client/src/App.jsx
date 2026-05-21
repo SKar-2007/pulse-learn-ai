@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from './lib/supabaseClient.js';
 import UploadForm from './components/UploadForm.jsx';
 import SkillTree from './components/SkillTree.jsx';
@@ -27,6 +27,8 @@ export default function App() {
     setSelectedRoadmap,
   } = useRoadmap();
   const { answer, setAnswer, feedback, loading: quizLoading, submitAnswer, clearFeedback } = useQuiz();
+
+  const activeNode = useMemo(() => nodes.find((node) => node.status !== 'completed') || nodes[0], [nodes]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -163,104 +165,104 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6">
-      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[360px_1fr]">
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-2xl shadow-slate-900/20">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-semibold text-indigo-300">Pulse Learn AI</h1>
-                <p className="mt-2 text-slate-400">Build learning roadmaps, answer active recall quizzes, and anchor completion receipts.</p>
-              </div>
-              <button onClick={handleSignOut} className="rounded-full border border-slate-700 bg-slate-950/80 px-4 py-2 text-sm text-slate-200 transition hover:border-slate-500">
-                Sign out
-              </button>
-            </div>
-          </div>
-
-          <UploadForm onCreated={handleRoadmapCreated} token={session.access_token} />
-
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold text-slate-100">Your roadmaps</h2>
-              <button onClick={() => loadRoadmaps(session.access_token)} className="rounded-full border border-slate-700 bg-slate-950/75 px-4 py-2 text-sm text-slate-200 transition hover:border-slate-500">
-                Refresh
-              </button>
-            </div>
-            <div className="mt-5 space-y-3">
-              {loading && <p className="text-sm text-slate-400">Loading roadmaps…</p>}
-              {!loading && roadmaps.length === 0 && <p className="text-sm text-slate-400">No roadmaps yet. Upload a syllabus to begin.</p>}
-              {roadmaps.map((roadmap) => (
-                <button
-                  key={roadmap.id}
-                  onClick={() => handleSelectRoadmap(roadmap)}
-                  className={`w-full rounded-3xl border px-4 py-4 text-left transition ${selectedRoadmap?.id === roadmap.id ? 'border-indigo-500 bg-indigo-500/10' : 'border-slate-800 bg-slate-950/80 hover:border-slate-600'}`}
-                >
-                  <p className="font-semibold text-slate-100">{roadmap.title}</p>
-                  <p className="mt-1 text-sm text-slate-400">{roadmap.time_budget_hours} hours • created {new Date(roadmap.created_at).toLocaleDateString()}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-2xl shadow-slate-900/20">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold text-slate-100">Roadmap details</h2>
-                <p className="mt-2 text-slate-400">Select a roadmap to review nodes and complete active recall checks.</p>
-              </div>
-              {selectedRoadmap && (
-                <button onClick={handleMint} className="rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400">
-                  Mint completion receipt
-                </button>
-              )}
-            </div>
-            <p className="mt-4 text-sm text-slate-400">{message}</p>
-          </div>
-
-          {selectedRoadmap ? (
-            <>
-              <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
-                <div className="space-y-6">
-                  <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6">
-                    <h3 className="text-lg font-semibold text-slate-100">Selected roadmap</h3>
-                    <p className="mt-3 text-slate-400">{selectedRoadmap.title}</p>
-                    <p className="mt-2 text-sm text-slate-500">{selectedRoadmap.time_budget_hours} hours total</p>
-                  </div>
-
-                  <SkillTree nodes={nodes} selectedNodeId={nodes[0]?.id} />
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+          <div className="space-y-6">
+            <section className="app-card-strong">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-indigo-300/70">Pulse Learn</p>
+                  <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">A cleaner way to learn and retain.</h1>
+                  <p className="mt-3 text-slate-400">Create personalized learning roadmaps, practice active recall, and verify completion with on-chain receipts.</p>
                 </div>
-
-                <div className="space-y-6">
-                  {nodes.length ? (
-                    <QuizPanel
-                      node={nodes.find((node) => node.status !== 'completed') || nodes[0]}
-                      answer={answer}
-                      setAnswer={setAnswer}
-                      onSubmit={() => handleVerify(nodes.find((node) => node.status !== 'completed') || nodes[0])}
-                      feedback={feedback}
-                      loading={quizLoading}
-                    />
-                  ) : (
-                    <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6">
-                      <p className="text-slate-400">No nodes available yet for this roadmap.</p>
-                    </div>
-                  )}
-                </div>
+                <button onClick={handleSignOut} className="btn-secondary">Sign out</button>
               </div>
+            </section>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                {nodes.map((node) => (
-                  <NodeCard key={node.id} title={node.title} summary={node.summary} status={node.status} />
+            <UploadForm onCreated={handleRoadmapCreated} token={session.access_token} />
+
+            <section className="app-card">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-100">Your roadmaps</h2>
+                  <p className="mt-1 text-sm text-slate-400">Manage created roadmaps and open one to practice.</p>
+                </div>
+                <button onClick={() => loadRoadmaps(session.access_token)} className="btn-secondary">Refresh</button>
+              </div>
+              <div className="mt-5 space-y-3">
+                {loading && <p className="text-sm text-slate-400">Loading roadmaps…</p>}
+                {!loading && roadmaps.length === 0 && <p className="text-sm text-slate-400">No roadmaps yet. Upload a syllabus to begin.</p>}
+                {roadmaps.map((roadmap) => (
+                  <button
+                    key={roadmap.id}
+                    onClick={() => handleSelectRoadmap(roadmap)}
+                    className={`w-full rounded-3xl border px-4 py-4 text-left transition ${selectedRoadmap?.id === roadmap.id ? 'border-indigo-500 bg-indigo-500/10' : 'border-slate-800 bg-slate-950/80 hover:border-slate-600'}`}
+                  >
+                    <p className="font-semibold text-slate-100">{roadmap.title}</p>
+                    <p className="mt-1 text-sm text-slate-400">{roadmap.time_budget_hours} hours • created {new Date(roadmap.created_at).toLocaleDateString()}</p>
+                  </button>
                 ))}
               </div>
-            </>
-          ) : (
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6">
-              <p className="text-slate-400">Select or create a roadmap to begin your learning journey.</p>
-            </div>
-          )}
+            </section>
+          </div>
+
+          <div className="space-y-6">
+            <section className="app-card">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold text-slate-100">Roadmap details</h2>
+                  <p className="mt-2 text-slate-400">Select a roadmap to review nodes and complete active recall checks.</p>
+                </div>
+                {selectedRoadmap && (
+                  <button onClick={handleMint} className="btn-primary">Mint completion receipt</button>
+                )}
+              </div>
+              {message ? <div className="mt-4 rounded-3xl border border-slate-800 bg-slate-950/80 p-4 text-sm text-slate-200">{message}</div> : null}
+            </section>
+
+            {selectedRoadmap ? (
+              <>
+                <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
+                  <div className="space-y-6">
+                    <section className="app-card">
+                      <h3 className="text-lg font-semibold text-slate-100">Selected roadmap</h3>
+                      <p className="mt-3 text-slate-400">{selectedRoadmap.title}</p>
+                      <p className="mt-2 text-sm text-slate-500">{selectedRoadmap.time_budget_hours} hours total</p>
+                    </section>
+
+                    <SkillTree nodes={nodes} selectedNodeId={activeNode?.id} />
+                  </div>
+
+                  <div className="space-y-6">
+                    {nodes.length ? (
+                      <QuizPanel
+                        node={activeNode}
+                        answer={answer}
+                        setAnswer={setAnswer}
+                        onSubmit={() => activeNode && handleVerify(activeNode)}
+                        feedback={feedback}
+                        loading={quizLoading}
+                      />
+                    ) : (
+                      <section className="app-card">
+                        <p className="text-slate-400">No nodes available yet for this roadmap.</p>
+                      </section>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  {nodes.map((node) => (
+                    <NodeCard key={node.id} title={node.title} summary={node.summary} status={node.status} />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <section className="app-card">
+                <p className="text-slate-400">Select or create a roadmap to begin your learning journey.</p>
+              </section>
+            )}
+          </div>
         </div>
       </div>
 

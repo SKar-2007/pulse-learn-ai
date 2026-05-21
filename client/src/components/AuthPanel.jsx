@@ -21,8 +21,11 @@ export default function AuthPanel({ onSignIn, onSignUp, authError }) {
 
   return (
     <div className="mx-auto max-w-xl rounded-3xl border border-slate-800 bg-slate-900/95 p-8 shadow-2xl shadow-slate-950/20">
-      <h1 className="text-3xl font-semibold text-indigo-300">Pulse Learn Auth</h1>
-      <p className="mt-2 text-slate-400">Sign in with your Supabase account or create a new user to access the roadmap engine.</p>
+      <div className="space-y-3">
+        <p className="text-xs uppercase tracking-[0.3em] text-indigo-300/80">Welcome back</p>
+        <h1 className="text-3xl font-semibold text-white">Pulse Learn AI</h1>
+        <p className="text-slate-400">Sign in or create an account to access your learning roadmaps and active recall practice.</p>
+      </div>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <label className="block text-sm text-slate-300">
@@ -31,7 +34,7 @@ export default function AuthPanel({ onSignIn, onSignUp, authError }) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100"
+            className="input-base"
             placeholder="name@company.com"
             required
           />
@@ -43,7 +46,7 @@ export default function AuthPanel({ onSignIn, onSignUp, authError }) {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100"
+            className="input-base"
             placeholder="••••••••"
             required
           />
@@ -52,13 +55,9 @@ export default function AuthPanel({ onSignIn, onSignUp, authError }) {
         {authError ? <p className="text-sm text-rose-400">{authError}</p> : null}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-full bg-indigo-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400"
-          >
+          <button type="submit" className="btn-primary">
             {loading ? 'Working…' : mode === 'signIn' ? 'Sign in' : 'Sign up'}
           </button>
-
           <button
             type="button"
             onClick={() => setMode(mode === 'signIn' ? 'signUp' : 'signIn')}

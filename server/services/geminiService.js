@@ -1,18 +1,13 @@
-import { TextServiceClient } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const client = new TextServiceClient();
+const client = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const model = client.getGenerativeModel({ model: 'gemini-pro' });
 
 export async function generateRoadmapFromText(syllabusText) {
   const prompt = `Extract a JSON array of learning nodes from the syllabus text. Use the following node schema: title, summary, estimatedMinutes, parentNodeId, status, remediationDepth. Respond with valid JSON only.`;
 
-  const response = await client.generateText({
-    model: 'gemini-pro',
-    prompt: {
-      text: `${prompt}\n\nSyllabus:\n${syllabusText}`,
-    },
-  });
-
-  const output = response?.result?.content?.[0]?.text || '';
+  const result = await model.generateContent(`${prompt}\n\nSyllabus:\n${syllabusText}`);
+  const output = extractText(result) || '';
   return parseRoadmapNodes(output);
 }
 
@@ -69,13 +64,16 @@ function fallbackToLines(rawText) {
 export async function verifyNodeAnswer({ userAnswer, expectedSummary }) {
   const prompt = `Assess whether the following answer demonstrates correct understanding of the expected concept. Return an object with score (0-1) and feedback.\n\nExpected summary: ${expectedSummary}\n\nStudent answer: ${userAnswer}`;
 
-  const response = await client.generateText({
-    model: 'gemini-pro',
-    prompt: { text: prompt },
-  });
-
-  const feedback = response?.result?.content?.[0]?.text || 'Unable to verify answer.';
+  const result = await model.generateContent(prompt);
+  const feedback = extractText(result) || 'Unable to verify answer.';
   const score = feedback.toLowerCase().includes('correct') ? 0.9 : 0.5;
 
   return { score, feedback };
+}
+
+function extractText(result) {
+  const response = result?.response;
+  const candidate = response?.candidates?.[0];
+  const parts = candidate?.content?.parts || [];
+  return parts.map((part) => part.text || '').join('').trim();
 }

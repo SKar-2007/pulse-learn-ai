@@ -45,6 +45,7 @@ router.post('/verify', async (req, res) => {
     });
 
     if (score < 0.7) {
+      await createRemediationNode({
         roadmapId,
         parentNodeId: nodeId,
         title: `Remediation: ${expectedSummary.slice(0, 50)}`,
