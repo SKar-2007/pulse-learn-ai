@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Responsive } from 'react-grid-layout';
 import { motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Share2, Sparkles, MessageSquare } from 'lucide-react';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import SkillTreeBlock from './blocks/SkillTreeBlock';
@@ -10,6 +10,8 @@ import ChartBlock from './blocks/ChartBlock';
 import NotesBlock from './blocks/NotesBlock';
 import ProgressBlock from './blocks/ProgressBlock';
 import SummaryBlock from './blocks/SummaryBlock';
+import RecapBlock from './RecapBlock';
+import LoopComponentViewer from './LoopComponentViewer';
 
 const ResponsiveGridLayout = Responsive;
 
@@ -20,11 +22,21 @@ const BLOCK_COMPONENTS = {
     notes: NotesBlock,
     progress: ProgressBlock,
     summary: SummaryBlock,
+    loop_component: LoopComponentViewer,
+    recap: RecapBlock,
+    ai_chat: ({ workspaceNotes }) => (
+      <div className="h-full w-full p-4 rounded-3xl border border-dashed border-slate-700 bg-slate-950/70 text-slate-200 flex flex-col justify-center items-center text-center gap-3">
+        <MessageSquare size={28} className="text-indigo-400" />
+        <p className="text-sm font-semibold">AI Assistant</p>
+        <p className="max-w-xs text-xs text-slate-400">Open the AI sidebar and ask it to summarize or update this workspace.</p>
+        <pre className="mt-3 max-w-full overflow-x-auto text-[10px] text-slate-500 bg-slate-900 p-2 rounded-2xl">{workspaceNotes || 'No notes available'}</pre>
+      </div>
+    ),
 };
 
 import WorkspaceCursors from './WorkspaceCursors';
 
-export default function WorkspaceCanvas({ layout, onLayoutChange, onRemoveBlock, roadmap, session, onConfigChange, workspaceNotes, presence, onCursorMove }) {
+export default function WorkspaceCanvas({ layout, onLayoutChange, onRemoveBlock, onDetachBlock, onDuplicateBlock, roadmap, session, onConfigChange, workspaceNotes, presence, onCursorMove }) {
     const handleMouseMove = (e) => {
         if (!roadmap?.id || !onCursorMove) return;
         const rect = e.currentTarget.getBoundingClientRect();
@@ -39,14 +51,16 @@ export default function WorkspaceCanvas({ layout, onLayoutChange, onRemoveBlock,
         if (!Component) return <div className="p-4 bg-red-900/20 text-red-400">Unknown Block</div>;
 
         return (
-            <div className="h-full w-full bg-gray-900/50 backdrop-blur-md border border-gray-800 rounded-3xl overflow-hidden shadow-xl group">
-                <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                        onClick={() => onRemoveBlock(item.i)}
-                        className="p-1.5 bg-gray-800 hover:bg-red-900 text-gray-400 hover:text-white rounded-lg transition-all"
-                    >
-                        <X size={14} />
-                    </button>
+            <div className="h-full w-full bg-gray-900/50 backdrop-blur-md border border-gray-800 rounded-3xl overflow-hidden shadow-xl group relative">
+                <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                    <div className="relative group">
+                      <button className="p-1.5 bg-gray-800 hover:bg-slate-700 text-gray-300 rounded-lg transition-all">⋯</button>
+                      <div className="hidden group-hover:flex absolute right-0 top-10 z-20 flex-col rounded-2xl bg-slate-950 border border-slate-800 shadow-xl overflow-hidden w-52">
+                        <button onClick={() => onDetachBlock?.(item)} className="text-left px-4 py-3 text-xs text-slate-200 hover:bg-slate-900">🔗 Share as Loop Component</button>
+                        <button onClick={() => onDuplicateBlock?.(item)} className="text-left px-4 py-3 text-xs text-slate-200 hover:bg-slate-900">📋 Duplicate Block</button>
+                        <button onClick={() => onRemoveBlock(item.i)} className="text-left px-4 py-3 text-xs text-rose-400 hover:bg-slate-900">🗑 Remove Block</button>
+                      </div>
+                    </div>
                 </div>
                 <div className="h-full w-full overflow-hidden">
                     <Component

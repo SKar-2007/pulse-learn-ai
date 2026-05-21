@@ -1,0 +1,39 @@
+import { useState } from 'react';
+import axios from 'axios';
+
+export default function useAIAssistant(session, profile, workspaceNotes) {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const sendMessage = async (message) => {
+    if (!message?.trim() || !session?.access_token) return null;
+    setLoading(true);
+    const userMsg = { role: 'user', content: message };
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
+
+    try {
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/ai-assistant`,
+        {
+          messages: updatedMessages,
+          pageContext: workspaceNotes,
+          mbtiType: profile?.mbti_type,
+        },
+        { headers: { Authorization: `Bearer ${session.access_token}` } }
+      );
+      const assistantMsg = { role: 'assistant', content: data.reply };
+      setMessages((prev) => [...prev, assistantMsg]);
+      return assistantMsg;
+    } catch (error) {
+      console.error('AI assistant failed', error);
+      const errorMsg = { role: 'assistant', content: "I couldn't connect to the AI right now." };
+      setMessages((prev) => [...prev, errorMsg]);
+      return errorMsg;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { messages, loading, sendMessage, setMessages };
+}

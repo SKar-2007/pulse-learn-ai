@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabaseClient';
 import useRoadmap from '../hooks/useRoadmap';
 import useWorkspace from '../hooks/useWorkspace';
 import useQuiz from '../hooks/useQuiz';
+import useAIAssistant from '../hooks/useAIAssistant';
 import { useRealtime } from '../hooks/useRealtime';
 import WorkspaceCanvas from './workspace/WorkspaceCanvas';
 import BlockPalette from './workspace/BlockPalette';
@@ -15,6 +16,8 @@ import MBTIInsights from './auth/MBTIInsights';
 import CollabSidebar from './collab/CollabSidebar';
 import PresenceBar from './collab/PresenceBar';
 import AICompanion from './workspace/AICompanion';
+import GlobalSearch from './search/GlobalSearch';
+import PageSidebar from './workspace/PageSidebar';
 import StellarModal from './StellarModal';
 import UploadForm from './UploadForm';
 
@@ -41,7 +44,16 @@ export default function Dashboard({ session, profile }) {
         setNodes,
     } = useRoadmap();
 
-    const { layout, setLayout, saveLayout } = useWorkspace(selectedRoadmap?.id, session, isShared);
+    const { layout, setLayout, saveLayout, pages, currentPageId, currentPage, selectPage, createPage, loading: workspaceLoading } = useWorkspace(selectedRoadmap?.id, session, isShared);
+
+    const aggregateNotes = useCallback(() => {
+        return layout
+            .filter(b => b.type === 'notes' && b.config?.text)
+            .map(b => b.config.text)
+            .join('\n\n');
+    }, [layout]);
+
+    const { messages: aiMessages, loading: aiLoading, sendMessage: sendAIMessage } = useAIAssistant(session, profile, aggregateNotes());
 
     const { answer, setAnswer, feedback, loading: quizLoading, submitAnswer, clearFeedback } = useQuiz();
 
@@ -94,6 +106,56 @@ export default function Dashboard({ session, profile }) {
         saveLayout(newLayout);
     };
 
+    const handleDuplicateBlock = (block) => {
+        const duplicate = {
+            ...block,
+            i: `block-${Date.now()}-dup`,
+            x: Math.min(block.x + 1, 8),
+            y: block.y + 1,
+            config: { ...block.config },
+        };
+        const newLayout = [...layout, duplicate];
+        setLayout(newLayout);
+        saveLayout(newLayout);
+    };
+
+    const handleDetachBlock = async (block) => {
+        if (!selectedRoadmap?.id || !session?.access_token) return;
+        try {
+            const { data } = await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/loop-component`,
+                {
+                    roadmap_id: selectedRoadmap.id,
+                    block_type: block.type,
+                    block_config: block.config,
+                    title: `${block.type} component`,
+                    share_scope: isShared ? 'team' : 'private',
+                },
+                { headers: { Authorization: `Bearer ${session.access_token}` } }
+            );
+
+            const shareLink = `${window.location.origin}/shared/${data.component.share_token}`;
+            window.navigator.clipboard?.writeText(shareLink);
+            setToastMessage('Loop component link copied to clipboard!');
+            setTimeout(() => setToastMessage(''), 4000);
+        } catch (err) {
+            console.error('Failed to share loop component:', err);
+            setToastMessage('Unable to share this block as a Loop Component.');
+            setTimeout(() => setToastMessage(''), 4000);
+        }
+    };
+
+    const handleNewPage = async () => {
+        const page = await createPage('New Workspace Page');
+        if (page) selectPage(page.id);
+    };
+
+    const handleNewSubpage = async () => {
+        if (!currentPageId) return;
+        const page = await createPage('New Subpage', currentPageId);
+        if (page) selectPage(page.id);
+    };
+
     const handleLayoutChange = (newLayout) => {
         const merged = newLayout.map(item => {
             const original = layout.find(b => b.i === item.i);
@@ -140,12 +202,6 @@ export default function Dashboard({ session, profile }) {
             }
         }
     };
-
-    const aggregateNotes = () => {
-        return layout
-            .filter(b => b.type === 'notes' && b.config?.text)
-            .map(b => b.config.text)
-            .join('\n\n');
     };
 
     return (
@@ -270,10 +326,24 @@ export default function Dashboard({ session, profile }) {
                         </div>
                     ) : (
                         <>
+                            {selectedRoadmap && (
+                                <PageSidebar
+                                    pages={pages}
+                                    currentPageId={currentPageId}
+                                    onPageSelect={selectPage}
+                                    onNewPage={handleNewPage}
+                                    onNewSubpage={handleNewSubpage}
+                                    onRenamePage={() => null}
+                                    onDeletePage={() => null}
+                                    onSaveAsTemplate={() => null}
+                                />
+                            )}
                             <WorkspaceCanvas
                                 layout={layout}
                                 onLayoutChange={handleLayoutChange}
                                 onRemoveBlock={handleRemoveBlock}
+                                onDetachBlock={handleDetachBlock}
+                                onDuplicateBlock={handleDuplicateBlock}
                                 onConfigChange={handleConfigChange}
                                 workspaceNotes={aggregateNotes()}
                                 roadmap={selectedRoadmap}
@@ -307,7 +377,12 @@ export default function Dashboard({ session, profile }) {
                 workspaceNotes={aggregateNotes()}
                 isOpen={showAI}
                 onToggle={() => setShowAI(!showAI)}
+                messages={aiMessages}
+                onSend={sendAIMessage}
+                loading={aiLoading}
             />
+
+            <GlobalSearch session={session} onNavigate={() => null} />
 
             <TemplateGallery
                 isOpen={showTemplates}

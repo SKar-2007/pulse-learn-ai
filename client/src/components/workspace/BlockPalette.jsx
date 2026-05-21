@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     GitBranch, BarChart2, CheckSquare, FileText, Activity,
-    LayoutGrid, Search, Sparkles, PlusCircle, PenTool
+    LayoutGrid, Search, Sparkles, PlusCircle, PenTool, Share2, Bot
 } from 'lucide-react';
 
 const BLOCK_TYPES = [
@@ -12,6 +12,9 @@ const BLOCK_TYPES = [
     { type: 'notes', label: 'Notes', icon: <FileText size={16} />, desc: 'Rich-text study notes' },
     { type: 'progress', label: 'Stats Ring', icon: <Activity size={16} />, desc: 'Completion metrics' },
     { type: 'summary', label: 'Smart Brief', icon: <Sparkles size={16} />, desc: 'AI synthesis of workspace' },
+    { type: 'loop_component', label: 'Loop Component', icon: <Share2 size={16} />, desc: 'Embed a live shared block' },
+    { type: 'recap', label: 'AI Recap', icon: <Sparkles size={16} />, desc: 'AI-generated page summary' },
+    { type: 'ai_chat', label: 'AI Assistant', icon: <Bot size={16} />, desc: 'In-canvas intelligence' },
 ];
 
 export default function BlockPalette({ onSelect }) {

@@ -1,15 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Sparkles, Send, MessageSquare, Brain, Layout, Minimize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
 
-export default function AICompanion({ session, roadmap, profile, workspaceNotes, isOpen, onToggle }) {
-    const [messages, setMessages] = useState([
-        { role: 'assistant', content: `Hello ${session.user.email.split('@')[0]}! I'm your ${profile.mbti_type} learning companion. Ask me to summarize your workspace, create study goals, or improve your notes.` }
-    ]);
+export default function AICompanion({ session, roadmap, profile, workspaceNotes, isOpen, onToggle, messages = [], onSend, loading }) {
     const [input, setInput] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [status, setStatus] = useState('Ready to refine your learning process.');
     const scrollRef = useRef(null);
 
     useEffect(() => {
@@ -19,36 +13,14 @@ export default function AICompanion({ session, roadmap, profile, workspaceNotes,
     }, [messages]);
 
     const handleSend = async () => {
-        if (!input.trim() || loading) return;
-
+        if (!input.trim() || loading || !onSend) return;
         const userMsg = input.trim();
         setInput('');
-        setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
-        setLoading(true);
-        setStatus('Thinking through your request...');
-
-        try {
-            const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/user/chat`,
-                {
-                    message: userMsg,
-                    roadmapId: roadmap?.id,
-                    workspaceNotes,
-                    history: [...messages, { role: 'user', content: userMsg }].slice(-6),
-                },
-                { headers: { Authorization: `Bearer ${session.access_token}` } }
-            );
-
-            setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
-            setStatus('AI guidance delivered');
-        } catch (error) {
-            console.error('AI Chat failed:', error);
-            setMessages(prev => [...prev, { role: 'assistant', content: "I couldn't connect to the AI brain right now — please refresh or try again." }]);
-            setStatus('AI connection issue.');
-        } finally {
-            setLoading(false);
-        }
+        await onSend(userMsg);
     };
+
+    const status = loading ? 'Thinking through your request...' : 'Ready to refine your learning process.';
+    const displayedMessages = messages.length ? messages : [{ role: 'assistant', content: `Hello ${session?.user?.email?.split('@')[0] || 'Learner'}! I'm your ${profile?.mbti_type || 'AI'} learning companion. Ask me to summarize your workspace, create study goals, or improve your notes.` }];
 
     return (
         <AnimatePresence>
@@ -87,7 +59,7 @@ export default function AICompanion({ session, roadmap, profile, workspaceNotes,
                     </div>
 
                     <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
-                        {messages.map((msg, i) => (
+                        {displayedMessages.map((msg, i) => (
                             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[82%] rounded-[2rem] p-4 text-sm leading-6 ${msg.role === 'user'
                                     ? 'bg-indigo-600 text-white rounded-br-none shadow-xl shadow-indigo-500/10'
@@ -132,9 +104,9 @@ export default function AICompanion({ session, roadmap, profile, workspaceNotes,
                             </button>
                         </div>
                         <div className="mt-4 grid gap-3">
-                            <QuickAction icon={<Brain size={14} />} label="Summarize my workspace" onClick={() => setInput('Summarize everything in my workspace and suggest a study plan.')} />
-                            <QuickAction icon={<Layout size={14} />} label="Create next steps" onClick={() => setInput('What should I focus on next based on my current work?')} />
-                            <QuickAction icon={<MessageSquare size={14} />} label="Polish my notes" onClick={() => setInput('Rewrite my notes into a sharper, easier-to-review summary.')} />
+                            <QuickAction icon={<Brain size={14} />} label="Summarize my workspace" onClick={() => onSend?.('Summarize everything in my workspace and suggest a study plan.')} />
+                            <QuickAction icon={<Layout size={14} />} label="Create next steps" onClick={() => onSend?.('What should I focus on next based on my current work?')} />
+                            <QuickAction icon={<MessageSquare size={14} />} label="Polish my notes" onClick={() => onSend?.('Rewrite my notes into a sharper, easier-to-review summary.')} />
                         </div>
                     </div>
                     <div className="px-5 pb-5 text-xs text-slate-500">{status}</div>
