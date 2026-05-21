@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Sparkles, RefreshCw, Brain, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import {API_BASE} from '../../../lib/apiClient';
 
 export default function SummaryBlock({ workspaceNotes, session }) {
     const [summary, setSummary] = useState('');
@@ -11,7 +12,7 @@ export default function SummaryBlock({ workspaceNotes, session }) {
         if (!workspaceNotes || loading) return;
         setLoading(true);
         try {
-            const { data } = await axios.post(`${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/user/chat`, {
+            const { data } = await axios.post(`${API_BASE}/api/user/chat`, {
                 message: "Based on all the notes in this workspace, generate a concise 'Smart Brief'. Highlight key concepts, cross-relationships, and missing gaps in my understanding. Format it with premium typography.",
                 history: [],
                 workspaceNotes

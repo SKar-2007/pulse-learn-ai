@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
+import { apiUrl, authHeaders } from '../lib/apiClient';
 
-const API_URL = import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || '';
 const DEMO_ROADMAPS = [
   {
     id: 'demo-roadmap',
@@ -60,7 +60,7 @@ export default function useRoadmap() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/roadmap`, {
+      const response = await fetch(apiUrl('/api/roadmap'), {
         headers: getHeaders(token),
       });
       const data = await response.json();
@@ -87,7 +87,7 @@ export default function useRoadmap() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/roadmap/${roadmapId}`, {
+      const response = await fetch(apiUrl(`/api/roadmap/${roadmapId}`), {
         headers: getHeaders(token),
       });
       const data = await response.json();

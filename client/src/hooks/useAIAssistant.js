@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { apiUrl, authHeaders } from '../lib/apiClient';
 
 export default function useAIAssistant(session, profile, workspaceNotes) {
   const [messages, setMessages] = useState([]);
@@ -14,13 +15,13 @@ export default function useAIAssistant(session, profile, workspaceNotes) {
 
     try {
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/ai-assistant`,
+        apiUrl('/api/ai-assistant'),
         {
           messages: updatedMessages,
           pageContext: workspaceNotes,
           mbtiType: profile?.mbti_type,
         },
-        { headers: { Authorization: `Bearer ${session.access_token}` } }
+        { headers: authHeaders(session.access_token) }
       );
       const assistantMsg = { role: 'assistant', content: data.reply };
       setMessages((prev) => [...prev, assistantMsg]);

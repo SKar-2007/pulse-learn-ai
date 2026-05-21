@@ -5,6 +5,7 @@ import { BarChart2, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import ChartRenderer from './ChartRenderer';
 import { useAuth } from '../../hooks/useAuth';
+import {API_BASE} from '../../lib/apiClient';
 
 const PRESET_QUERIES = [
     'Show my quiz scores over time as a line chart',
@@ -28,7 +29,7 @@ export default function AnalyticsDashboard() {
 
         try {
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/analytics/query`,
+                `${API_BASE}/api/analytics/query`,
                 { query: activeQuery },
                 { headers: { Authorization: `Bearer ${session.access_token}` } }
             );

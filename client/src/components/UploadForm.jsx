@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { Upload, FileText, Clock, Sparkles, Loader2 } from 'lucide-react';
+import {API_BASE} from '../lib/apiClient';
 
 export default function UploadForm({ token, onRoadmapGenerated }) {
   const [file, setFile] = useState(null);
@@ -24,7 +25,7 @@ export default function UploadForm({ token, onRoadmapGenerated }) {
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/roadmap/generate`,
+        `${API_BASE}/api/roadmap/generate`,
         formData,
         {
           headers: {

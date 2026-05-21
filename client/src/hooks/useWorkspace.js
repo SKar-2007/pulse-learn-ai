@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { supabase } from '../lib/supabaseClient';
+import { apiUrl, authHeaders } from '../lib/apiClient';
 
 const DEMO_LAYOUT = [
   { i: 'block-1', x: 0, y: 0, w: 4, h: 4, type: 'quiz', config: {} },
@@ -9,7 +10,6 @@ const DEMO_LAYOUT = [
 ];
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
-const API_URL = import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || '';
 
 export default function useWorkspace(roadmapId, session, isShared = false) {
     const [layout, setLayout] = useState([]);
@@ -25,7 +25,7 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
         if (!roadmapId || demo) return;
         try {
             const { data } = await axios.get(
-                `${API_URL}/api/workspace/${roadmapId}/pages`,
+                apiUrl(`/api/workspace/${roadmapId}/pages`),
                 { headers: getHeaders() }
             );
             const loadedPages = data.pages || [];
@@ -46,7 +46,7 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
         if (!roadmapId || demo) return null;
         try {
             const { data } = await axios.post(
-                `${API_URL}/api/workspace/${roadmapId}/pages`,
+                apiUrl(`/api/workspace/${roadmapId}/pages`),
                 { title, parent_page_id: parentPageId },
                 { headers: getHeaders() }
             );
@@ -65,7 +65,7 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
         if (!roadmapId || demo || !pageId) return null;
         try {
             const { data } = await axios.post(
-                `${API_URL}/api/workspace/${roadmapId}/pages/${pageId}/duplicate`,
+                apiUrl(`/api/workspace/${roadmapId}/pages/${pageId}/duplicate`),
                 { title },
                 { headers: getHeaders() }
             );
@@ -74,6 +74,46 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
         } catch (err) {
             console.error('Failed to duplicate page:', err);
             return null;
+        }
+    };
+
+    const renamePage = async (pageId, title) => {
+        if (!roadmapId || demo || !pageId) return null;
+        try {
+            const { data } = await axios.patch(
+                apiUrl(`/api/workspace/${roadmapId}/pages/${pageId}`),
+                { title },
+                { headers: getHeaders() }
+            );
+
+            setPages((prev) => prev.map((page) => (page.id === pageId ? data.page : page)));
+            if (currentPageId === pageId) {
+                setCurrentPage(data.page);
+            }
+            return data.page;
+        } catch (err) {
+            console.error('Failed to rename page:', err);
+            return null;
+        }
+    };
+
+    const deletePage = async (pageId) => {
+        if (!roadmapId || demo || !pageId) return false;
+        try {
+            await axios.delete(
+                apiUrl(`/api/workspace/${roadmapId}/pages/${pageId}`),
+                { headers: getHeaders() }
+            );
+            setPages((prev) => prev.filter((page) => page.id !== pageId));
+            if (currentPageId === pageId) {
+                const fallback = pages.find((page) => page.id !== pageId) || null;
+                setCurrentPageId(fallback?.id || null);
+                setCurrentPage(fallback);
+            }
+            return true;
+        } catch (err) {
+            console.error('Failed to delete page:', err);
+            return false;
         }
     };
 
@@ -93,7 +133,7 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
 
             const pageQuery = currentPageId ? `&page_id=${currentPageId}` : '';
             const { data } = await axios.get(
-                `${API_URL}/api/workspace/${roadmapId}?is_shared=${isShared}${pageQuery}`,
+                apiUrl(`/api/workspace/${roadmapId}?is_shared=${isShared}${pageQuery}`),
                 { headers: getHeaders() }
             );
             setLayout(data.layout || []);
@@ -113,7 +153,7 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
 
         try {
             await axios.post(
-                `${API_URL}/api/workspace/layout`,
+                apiUrl('/api/workspace/layout'),
                 { roadmap_id: roadmapId, layout_json: newLayout, is_shared: isShared, page_id: currentPageId },
                 { headers: getHeaders() }
             );
@@ -167,6 +207,8 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
         selectPage,
         createPage,
         duplicatePage,
+        renamePage,
+        deletePage,
         loading,
     };
 }

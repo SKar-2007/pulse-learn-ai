@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabaseClient';
+import { apiUrl, authHeaders } from './lib/apiClient';
 import LoginForm from './components/auth/LoginForm';
 import PersonalityOnboarding from './components/auth/PersonalityOnboarding';
 import Dashboard from './components/Dashboard';
@@ -52,8 +53,8 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/user/profile`, {
-        headers: { Authorization: `Bearer ${sess.access_token}` },
+      const res = await fetch(apiUrl('/api/user/profile'), {
+        headers: authHeaders(sess.access_token),
       });
       const data = await res.json();
       setProfile(data.profile); // null means onboarding needed

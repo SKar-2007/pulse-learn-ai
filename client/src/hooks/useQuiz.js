@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../lib/apiClient';
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
@@ -24,7 +25,7 @@ export default function useQuiz() {
       }
 
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/node/verify`,
+        `${API_BASE}/api/node/verify`,
         {
           nodeId,
           roadmapId,

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Users, UserPlus, Crown, Eye, Pencil } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../hooks/useAuth';
+import {API_BASE} from '../../lib/apiClient';
 
 const ROLE_ICONS = {
     owner: <Crown className="w-4 h-4 text-yellow-400" />,
@@ -23,7 +24,7 @@ export default function CollabSidebar({ roadmapId, ownerId }) {
     const fetchCollaborators = async () => {
         try {
             const { data } = await axios.get(
-                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/collab/${roadmapId}`,
+                `${API_BASE}/api/collab/${roadmapId}`,
                 { headers: { Authorization: `Bearer ${session.access_token}` } }
             );
             setCollaborators(data.collaborators || []);
@@ -44,7 +45,7 @@ export default function CollabSidebar({ roadmapId, ownerId }) {
         setError(null);
         try {
             await axios.post(
-                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/collab/invite`,
+                `${API_BASE}/api/collab/invite`,
                 { roadmap_id: roadmapId, invitee_email: inviteEmail, role: inviteRole },
                 { headers: { Authorization: `Bearer ${session.access_token}` } }
             );

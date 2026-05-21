@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import {API_BASE} from '../../lib/apiClient';
 
 export default function RecapBlock({ config = {}, roadmap, session, profile, workspaceNotes }) {
   const [recap, setRecap] = useState(null);
@@ -11,7 +12,7 @@ export default function RecapBlock({ config = {}, roadmap, session, profile, wor
     setLoading(true);
     try {
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/recap/${roadmapId}`,
+        `${API_BASE}/api/recap/${roadmapId}`,
         { pageContext, mbtiType: profile?.mbti_type },
         { headers: { Authorization: `Bearer ${session?.access_token}` } }
       );

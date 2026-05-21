@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import SearchResults from './SearchResults';
+import {API_BASE} from '../../lib/apiClient';
 
 export default function GlobalSearch({ session, onNavigate }) {
   const [open, setOpen] = useState(false);
@@ -30,7 +31,7 @@ export default function GlobalSearch({ session, onNavigate }) {
     const timer = setTimeout(async () => {
       try {
         const { data } = await axios.get(
-          `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/search?q=${encodeURIComponent(query)}`,
+          `${API_BASE}/api/search?q=${encodeURIComponent(query)}`,
           { headers: { Authorization: `Bearer ${session.access_token}` } }
         );
         setResults(data.results || { pages: [], nodes: [], notes: [] });

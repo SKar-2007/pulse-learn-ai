@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { apiUrl, authHeaders } from '../lib/apiClient';
 
 export default function useGlobalSearch(session, query) {
   const [results, setResults] = useState({ pages: [], nodes: [], notes: [] });
@@ -14,8 +15,8 @@ export default function useGlobalSearch(session, query) {
     let active = true;
     setLoading(true);
 
-    axios.get(`${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/search?q=${encodeURIComponent(query)}`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
+    axios.get(apiUrl(`/api/search?q=${encodeURIComponent(query)}`), {
+      headers: authHeaders(session.access_token),
     }).then(({ data }) => {
       if (active) {
         setResults(data.results || { pages: [], nodes: [], notes: [] });

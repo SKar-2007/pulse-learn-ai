@@ -62,6 +62,7 @@ const STEPS = [
 ];
 
 import MBTITest from './MBTITest';
+import {API_BASE} from '../../lib/apiClient';
 
 export default function PersonalityOnboarding({ session, onComplete }) {
     const [step, setStep] = useState(-1); // -1 for MBTI test
@@ -89,7 +90,7 @@ export default function PersonalityOnboarding({ session, onComplete }) {
         setSaving(true);
         try {
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/user/profile`,
+                `${API_BASE}/api/user/profile`,
                 finalAnswers,
                 { headers: { Authorization: `Bearer ${session.access_token}` } }
             );

@@ -159,6 +159,42 @@ router.post('/:roadmap_id/pages/:page_id/layout', requireAuth, async (req, res) 
     }
 });
 
+// PATCH /api/workspace/:roadmap_id/pages/:page_id — rename a page
+router.patch('/:roadmap_id/pages/:page_id', requireAuth, async (req, res) => {
+    try {
+        const { title } = req.body;
+        const updates = {};
+        if (title) updates.title = title;
+
+        const { data, error } = await supabase
+            .from('workspace_pages')
+            .update(updates)
+            .match({ id: req.params.page_id, roadmap_id: req.params.roadmap_id, user_id: req.user.id })
+            .select()
+            .single();
+
+        if (error) throw error;
+        res.json({ page: data });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE /api/workspace/:roadmap_id/pages/:page_id — delete a page
+router.delete('/:roadmap_id/pages/:page_id', requireAuth, async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('workspace_pages')
+            .delete()
+            .match({ id: req.params.page_id, roadmap_id: req.params.roadmap_id, user_id: req.user.id });
+
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST /api/workspace/:roadmap_id/pages/:page_id/duplicate — duplicate a page
 router.post('/:roadmap_id/pages/:page_id/duplicate', requireAuth, async (req, res) => {
     try {

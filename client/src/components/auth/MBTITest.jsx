@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MBTI_QUESTIONS } from '../../lib/mbtiQuestions';
 import axios from 'axios';
+import {API_BASE} from '../../lib/apiClient';
 
 export default function MBTITest({ session, onComplete }) {
     const [currentQ, setCurrentQ] = useState(0);
@@ -22,7 +23,7 @@ export default function MBTITest({ session, onComplete }) {
             setSaving(true);
             try {
                 const { data } = await axios.post(
-                    `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/user/mbti`,
+                    `${API_BASE}/api/user/mbti`,
                     { answers: newAnswers },
                     { headers: { Authorization: `Bearer ${session.access_token}` } }
                 );

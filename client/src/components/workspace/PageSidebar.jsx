@@ -8,7 +8,22 @@ export default function PageSidebar({ pages, currentPageId, onPageSelect, onNewP
       >
         <span>{page.icon || '📄'}</span>
         <span className="truncate">{page.title || 'Untitled Page'}</span>
-        <span className="text-xs text-slate-500">{page.children?.length ? page.children.length : ''}</span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onRenamePage(page); }}
+            className="text-xs text-slate-400 hover:text-white"
+          >
+            ✎
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onDeletePage(page); }}
+            className="text-xs text-rose-400 hover:text-red-300"
+          >
+            🗑
+          </button>
+        </div>
       </div>
       {page.children?.map((child) => renderPage(child, depth + 1))}
     </div>

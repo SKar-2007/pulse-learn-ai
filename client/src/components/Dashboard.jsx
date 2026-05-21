@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { LogOut, Upload, Users, Sparkles, Layout } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactConfetti from 'react-confetti';
 import axios from 'axios';
 import { supabase } from '../lib/supabaseClient';
+import { apiUrl, authHeaders } from '../lib/apiClient';
 import useRoadmap from '../hooks/useRoadmap';
 import useWorkspace from '../hooks/useWorkspace';
 import useAIAssistant from '../hooks/useAIAssistant';
@@ -26,6 +27,7 @@ import UploadForm from './UploadForm';
 export default function Dashboard({ session, profile }) {
     const [activeTab, setActiveTab] = useState('roadmap');
     const [toastMessage, setToastMessage] = useState('');
+    const toastTimer = useRef(null);
     const [showConfetti, setShowConfetti] = useState(false);
     const [stellarTxHash, setStellarTxHash] = useState(null);
     const [showProfile, setShowProfile] = useState(false);
@@ -33,6 +35,23 @@ export default function Dashboard({ session, profile }) {
     const [showAI, setShowAI] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
     const [savedTemplates, setSavedTemplates] = useState([]);
+
+    const showToast = (message, duration = 3000) => {
+        setToastMessage(message);
+        if (toastTimer.current) {
+            window.clearTimeout(toastTimer.current);
+        }
+        toastTimer.current = window.setTimeout(() => setToastMessage(''), duration);
+    };
+
+    const clearToast = () => {
+        setToastMessage('');
+        if (toastTimer.current) {
+            window.clearTimeout(toastTimer.current);
+        }
+    };
+
+    const apiHeaders = authHeaders(session?.access_token);
 
     const {
         roadmaps,
@@ -47,7 +66,7 @@ export default function Dashboard({ session, profile }) {
         setNodes,
     } = useRoadmap();
 
-    const { layout, setLayout, saveLayout, pages, currentPageId, currentPage, selectPage, createPage, loading: workspaceLoading } = useWorkspace(selectedRoadmap?.id, session, isShared);
+    const { layout, setLayout, saveLayout, pages, currentPageId, currentPage, selectPage, createPage, renamePage, deletePage, loading: workspaceLoading } = useWorkspace(selectedRoadmap?.id, session, isShared);
 
     const workspaceNotes = useMemo(() => {
         return layout
@@ -74,13 +93,13 @@ export default function Dashboard({ session, profile }) {
         if (!selectedRoadmap?.id || !session?.access_token) return;
         try {
             await axios.post(
-                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/automation/trigger`,
+                apiUrl('/api/automation/trigger'),
                 {
                     roadmap_id: selectedRoadmap.id,
                     trigger_type: triggerType,
                     trigger_data: triggerData,
                 },
-                { headers: { Authorization: `Bearer ${session.access_token}` } }
+                { headers: authHeaders(session.access_token) }
             );
         } catch (err) {
             console.error(`Automation trigger failed (${triggerType}):`, err);
@@ -117,8 +136,7 @@ export default function Dashboard({ session, profile }) {
 
     const handleSaveCurrentTemplate = () => {
         if (!currentPageId) {
-            setToastMessage('Select a page before saving a template.');
-            setTimeout(() => setToastMessage(''), 3000);
+            showToast('Select a page before saving a template.');
             return;
         }
 
@@ -135,28 +153,25 @@ export default function Dashboard({ session, profile }) {
         };
 
         persistSavedTemplates([template, ...savedTemplates]);
-        setToastMessage('Template saved locally.');
-        setTimeout(() => setToastMessage(''), 3000);
+        showToast('Template saved locally.');
     };
 
     const handleDuplicatePage = async () => {
         if (!currentPageId || !selectedRoadmap?.id) return;
         try {
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/workspace/${selectedRoadmap.id}/pages/${currentPageId}/duplicate`,
+                apiUrl(`/api/workspace/${selectedRoadmap.id}/pages/${currentPageId}/duplicate`),
                 { title: `Copy of ${currentPage?.title || 'Page'}` },
-                { headers: { Authorization: `Bearer ${session.access_token}` } }
+                { headers: authHeaders(session.access_token) }
             );
 
             if (data.page) {
-                setToastMessage('Page duplicated successfully.');
-                setTimeout(() => setToastMessage(''), 3000);
+                showToast('Page duplicated successfully.');
                 selectPage(data.page.id);
             }
         } catch (err) {
             console.error('Duplicate page failed:', err);
-            setToastMessage('Page duplication failed.');
-            setTimeout(() => setToastMessage(''), 3000);
+            showToast('Page duplication failed.');
         }
     };
 
@@ -166,8 +181,8 @@ export default function Dashboard({ session, profile }) {
             setAutomationLoading(true);
             try {
                 const { data } = await axios.get(
-                    `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/automation/${selectedRoadmap.id}`,
-                    { headers: { Authorization: `Bearer ${session.access_token}` } }
+                    apiUrl(`/api/automation/${selectedRoadmap.id}`),
+                    { headers: authHeaders(session.access_token) }
                 );
                 setAutomationRules(data.rules || []);
             } catch (err) {
@@ -181,7 +196,7 @@ export default function Dashboard({ session, profile }) {
     }, [selectedRoadmap, session]);
 
     const handleSearchNavigate = async (item, type) => {
-        if (!item) return;
+        if (!item || !session?.access_token) return;
 
         if (type === 'page' || type === 'note') {
             if (selectedRoadmap?.id !== item.roadmap_id) {
@@ -190,19 +205,20 @@ export default function Dashboard({ session, profile }) {
 
             if (type === 'page') {
                 selectPage(item.id);
-                setToastMessage(`Navigated to page “${item.title}”.`);
-            } else if (item.page_id) {
+                showToast(`Navigated to page “${item.title}”.`);
+            } else {
                 selectPage(item.page_id);
-                setToastMessage(`Opened note from “${item.page_title}”.`);
+                showToast(`Opened note from “${item.page_title}”.`);
             }
-        } else if (type === 'node') {
+            return;
+        }
+
+        if (type === 'node') {
             if (selectedRoadmap?.id !== item.roadmap_id) {
                 await loadRoadmap(item.roadmap_id, session.access_token);
             }
-            setToastMessage(`Found node “${item.title}”.`);
+            showToast(`Found node “${item.title}”.`);
         }
-
-        setTimeout(() => setToastMessage(''), 3000);
     };
 
     const handleNodeUpdate = useCallback((updatedNode) => {
@@ -220,7 +236,7 @@ export default function Dashboard({ session, profile }) {
 
     const handleSelectRoadmap = async (roadmap) => {
         setSelectedRoadmap(roadmap);
-        clearFeedback();
+        clearToast();
         setStellarTxHash(null);
         if (session?.access_token) {
             await loadRoadmap(roadmap.id, session.access_token);
@@ -265,7 +281,7 @@ export default function Dashboard({ session, profile }) {
         if (!selectedRoadmap?.id || !session?.access_token) return;
         try {
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/loop-component`,
+                apiUrl('/api/loop-component'),
                 {
                     roadmap_id: selectedRoadmap.id,
                     block_type: block.type,
@@ -273,17 +289,15 @@ export default function Dashboard({ session, profile }) {
                     title: `${block.type} component`,
                     share_scope: isShared ? 'team' : 'private',
                 },
-                { headers: { Authorization: `Bearer ${session.access_token}` } }
+                { headers: authHeaders(session.access_token) }
             );
 
             const shareLink = `${window.location.origin}/shared/${data.component.share_token}`;
             window.navigator.clipboard?.writeText(shareLink);
-            setToastMessage('Loop component link copied to clipboard!');
-            setTimeout(() => setToastMessage(''), 4000);
+            showToast('Loop component link copied to clipboard!', 4000);
         } catch (err) {
             console.error('Failed to share loop component:', err);
-            setToastMessage('Unable to share this block as a Loop Component.');
-            setTimeout(() => setToastMessage(''), 4000);
+            showToast('Unable to share this block as a Loop Component.', 4000);
         }
     };
 
@@ -320,17 +334,15 @@ export default function Dashboard({ session, profile }) {
         setToastMessage('Minting credential on Stellar...');
         try {
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/roadmap/${selectedRoadmap.id}/complete`,
+                apiUrl(`/api/roadmap/${selectedRoadmap.id}/complete`),
                 { finalScore: nodes.length ? (nodes.filter(n => n.status === 'completed').length / nodes.length) * 100 : 100 },
-                { headers: { Authorization: `Bearer ${session.access_token}` } }
+                { headers: authHeaders(session.access_token) }
             );
             setStellarTxHash(data.stellar_tx_hash);
-            setToastMessage('Credential minted successfully!');
+            showToast('Credential minted successfully!');
         } catch (err) {
             console.error('Minting failed:', err);
-            setToastMessage('Minting failed. Please try again.');
-        } finally {
-            setTimeout(() => setToastMessage(''), 3000);
+            showToast('Minting failed. Please try again.');
         }
     };
 
@@ -487,8 +499,17 @@ export default function Dashboard({ session, profile }) {
                                     onPageSelect={selectPage}
                                     onNewPage={handleNewPage}
                                     onNewSubpage={handleNewSubpage}
-                                    onRenamePage={() => null}
-                                    onDeletePage={() => null}
+                                    onRenamePage={async (page) => {
+                                        const title = window.prompt('Rename page', page.title || 'Untitled Page');
+                                        if (!title) return;
+                                        const renamed = await renamePage(page.id, title);
+                                        if (renamed) showToast('Page renamed.');
+                                    }}
+                                    onDeletePage={async (page) => {
+                                        if (!window.confirm(`Delete page “${page.title}”? This cannot be undone.`)) return;
+                                        const deleted = await deletePage(page.id);
+                                        if (deleted) showToast('Page deleted.');
+                                    }}
                                     onSaveAsTemplate={handleSaveCurrentTemplate}
                                     onDuplicatePage={handleDuplicatePage}
                                 />
@@ -526,9 +547,9 @@ export default function Dashboard({ session, profile }) {
                                         if (!selectedRoadmap?.id || !session?.access_token) return;
                                         try {
                                             const { data } = await axios.post(
-                                                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/automation/${selectedRoadmap.id}`,
+                                                apiUrl(`/api/automation/${selectedRoadmap.id}`),
                                                 rule,
-                                                { headers: { Authorization: `Bearer ${session.access_token}` } }
+                                                { headers: authHeaders(session.access_token) }
                                             );
                                             setAutomationRules((prev) => [...prev, data.rule]);
                                         } catch (error) {
@@ -539,8 +560,8 @@ export default function Dashboard({ session, profile }) {
                                         if (!session?.access_token) return;
                                         try {
                                             await axios.delete(
-                                                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/automation/${ruleId}`,
-                                                { headers: { Authorization: `Bearer ${session.access_token}` } }
+                                                apiUrl(`/api/automation/${ruleId}`),
+                                                { headers: authHeaders(session.access_token) }
                                             );
                                             setAutomationRules((prev) => prev.filter((rule) => rule.id !== ruleId));
                                         } catch (error) {

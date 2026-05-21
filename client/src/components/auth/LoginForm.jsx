@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabaseClient';
 import { Sparkles, Mail, Lock, ArrowRight, Github } from 'lucide-react';
+import {API_BASE} from '../../lib/apiClient';
 
 const enableGoogleAuth = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === 'true';
 
@@ -19,7 +20,7 @@ export default function LoginForm() {
         ? `Welcome back, ${savedPersona.expertise_level} ${savedPersona.study_domain || 'scholar'}`
         : "Your personality-aware learning journey starts here.";
 
-    const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || '';
+    const apiUrl = API_BASE;
 
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();

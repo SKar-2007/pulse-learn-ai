@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { HelpCircle, Send, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import {API_BASE} from '../lib/apiClient';
 
 export default function QuizPanel({ node, onVerify, session }) {
   const [questions, setQuestions] = useState([]);
@@ -22,7 +23,7 @@ export default function QuizPanel({ node, onVerify, session }) {
     setAnswers([]);
     try {
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/node/quiz`,
+        `${API_BASE}/api/node/quiz`,
         { nodeId: node.id },
         { headers: { Authorization: `Bearer ${session.access_token}` } }
       );
@@ -43,7 +44,7 @@ export default function QuizPanel({ node, onVerify, session }) {
     setSubmitting(true);
     try {
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/node/verify`,
+        `${API_BASE}/api/node/verify`,
         {
           nodeId: node.id,
           roadmapId: node.roadmap_id,

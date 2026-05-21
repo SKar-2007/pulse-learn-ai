@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { apiUrl, authHeaders } from '../lib/apiClient';
 import { supabase } from '../lib/supabaseClient';
 
 export default function useLoopComponents(roadmapId, session) {
@@ -11,8 +12,8 @@ export default function useLoopComponents(roadmapId, session) {
     const load = async () => {
       try {
         const { data } = await axios.get(
-          `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/loop-component?roadmapId=${roadmapId}`,
-          { headers: { Authorization: `Bearer ${session.access_token}` } }
+          apiUrl(`/api/loop-component?roadmapId=${roadmapId}`),
+          { headers: authHeaders(session.access_token) }
         );
         setComponents(data.components || []);
       } catch (error) {
@@ -40,14 +41,14 @@ export default function useLoopComponents(roadmapId, session) {
   const detachBlock = async (block) => {
     if (!session?.access_token) return null;
     const { data } = await axios.post(
-      `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/loop-component`,
+      apiUrl('/api/loop-component'),
       {
         roadmap_id: roadmapId,
         block_type: block.type,
         block_config: block.config,
         title: block.config?.title || 'Shared Block',
       },
-      { headers: { Authorization: `Bearer ${session.access_token}` } }
+      { headers: authHeaders(session.access_token) }
     );
     setComponents((prev) => [...prev, data.component]);
     return data.component;

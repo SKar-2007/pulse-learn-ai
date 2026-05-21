@@ -3,6 +3,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { FileText, Bold, Italic, List, Sparkles } from 'lucide-react';
 import axios from 'axios';
+import {API_BASE} from '../../../lib/apiClient';
 
 export default function NotesBlock({ roadmap, session, config, onConfigChange, workspaceNotes }) {
     const [commandLoading, setCommandLoading] = useState(false);
@@ -16,7 +17,7 @@ export default function NotesBlock({ roadmap, session, config, onConfigChange, w
                 : 'Summarize the note below into concise study guidance and next steps. Use bullet points where possible.\n\n';
 
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/user/chat`,
+                `${API_BASE}/api/user/chat`,
                 {
                     message: `${prompt}${editor.getText()}`,
                     history: [],
@@ -92,7 +93,7 @@ export default function NotesBlock({ roadmap, session, config, onConfigChange, w
                             onClick={async () => {
                                 const text = editor.getText();
                                 const { data } = await axios.post(
-                                    `${import.meta.env.VITE_API_URL?.replace(/\/\$/, '') || ''}/api/user/chat`,
+                                    `${API_BASE}/api/user/chat`,
                                     {
                                         message: `Summarize this text in a few bullet points:\n\n${text}`,
                                         history: [],
