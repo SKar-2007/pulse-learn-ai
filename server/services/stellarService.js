@@ -1,9 +1,18 @@
 import StellarSdk from '@stellar/stellar-sdk';
+import { buildStellarDataKey, buildStellarDataValue } from './stellarUtils.js';
 
 export async function mintCredentialReceipt({ walletSecret, credentialData }) {
-  const sourceKeypair = StellarSdk.Keypair.fromSecret(walletSecret);
+  const secret = walletSecret || process.env.WALLET_SECRET;
+  if (!secret) {
+    throw new Error('Stellar secret key is required');
+  }
+
+  const sourceKeypair = StellarSdk.Keypair.fromSecret(secret);
   const server = new StellarSdk.Server('https://horizon-testnet.stellar.org');
   const account = await server.loadAccount(sourceKeypair.publicKey());
+
+  const dataValue = buildStellarDataValue(credentialData);
+  const dataKey = buildStellarDataKey(credentialData?.roadmapId || 'receipt');
 
   const transaction = new StellarSdk.TransactionBuilder(account, {
     fee: StellarSdk.BASE_FEE,
@@ -11,10 +20,11 @@ export async function mintCredentialReceipt({ walletSecret, credentialData }) {
   })
     .addOperation(
       StellarSdk.Operation.manageData({
-        name: 'pulse_learn_receipt',
-        value: JSON.stringify(credentialData).slice(0, 64),
+        name: dataKey,
+        value: dataValue,
       })
     )
+    .addMemo(StellarSdk.Memo.text(`pulse-learn:${new Date().toISOString()}`))
     .setTimeout(180)
     .build();
 

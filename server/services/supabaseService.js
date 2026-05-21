@@ -12,7 +12,21 @@ export async function getUserFromAccessToken(accessToken) {
   return data.user;
 }
 
-export async function createRoadmap({ userId, title, timeBudgetHours, targetDate }) {
+export async function ensureUserRecord(user) {
+  if (!user?.id) throw new Error('Missing user id');
+  const { data, error } = await supabase
+    .from('users')
+    .upsert({ id: user.id, email: user.email }, { onConflict: 'id' })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function createRoadmap({ userId, userEmail, title, timeBudgetHours, targetDate }) {
+  await ensureUserRecord({ id: userId, email: userEmail });
+
   const { data, error } = await supabase
     .from('roadmaps')
     .insert({
@@ -121,7 +135,9 @@ export async function updateNodeStatus(nodeId, updates) {
   return data;
 }
 
-export async function insertActiveRecallLog({ userId, nodeId, quizScore, aiFeedback }) {
+export async function insertActiveRecallLog({ userId, userEmail, nodeId, quizScore, aiFeedback }) {
+  await ensureUserRecord({ id: userId, email: userEmail });
+
   const { data, error } = await supabase
     .from('active_recall_logs')
     .insert({

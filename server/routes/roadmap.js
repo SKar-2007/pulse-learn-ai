@@ -73,6 +73,7 @@ router.post('/generate', upload.single('syllabus'), async (req, res) => {
 
     const roadmap = await createRoadmap({
       userId: req.user.id,
+      userEmail: req.user.email,
       title,
       timeBudgetHours: parseInt(timeBudgetHours, 10),
       targetDate: targetDate || null,
@@ -90,8 +91,8 @@ router.post('/generate', upload.single('syllabus'), async (req, res) => {
 router.post('/mint', async (req, res) => {
   try {
     const { roadmapId, walletSecret } = req.body;
-    if (!roadmapId || !walletSecret) {
-      return res.status(400).json({ error: 'roadmapId and walletSecret are required.' });
+    if (!roadmapId) {
+      return res.status(400).json({ error: 'roadmapId is required.' });
     }
 
     const roadmap = await getRoadmapById(roadmapId);

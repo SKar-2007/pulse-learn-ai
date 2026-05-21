@@ -29,6 +29,7 @@ router.post('/verify', async (req, res) => {
 
     await insertActiveRecallLog({
       userId: req.user.id,
+      userEmail: req.user.email,
       nodeId,
       quizScore: score,
       aiFeedback: feedback,
