@@ -6,8 +6,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import requestLogger from './middleware/requestLogger.js';
 import errorHandler from './middleware/errorHandler.js';
+
+import userRouter from './routes/user.js';
 import roadmapRouter from './routes/roadmap.js';
 import nodeRouter from './routes/node.js';
+import analyticsRouter from './routes/analytics.js';
+import collabRouter from './routes/collab.js';
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -22,8 +26,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', environment: process.env.NODE_ENV || 'development', timestamp: new Date().toISOString() });
 });
 
+app.use('/api/user', userRouter);
 app.use('/api/roadmap', roadmapRouter);
 app.use('/api/node', nodeRouter);
+app.use('/api/analytics', analyticsRouter);
+app.use('/api/collab', collabRouter);
 
 if (fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath, { maxAge: '1d' }));
@@ -36,16 +43,5 @@ if (fs.existsSync(clientDistPath)) {
 
 app.use(errorHandler);
 
-const port = normalizePort(process.env.PORT || '3001');
+const port = process.env.PORT || '3001';
 app.listen(port, () => console.log(`Pulse-Learn server running on port ${port}`));
-
-function normalizePort(value) {
-  const portNumber = Number(value);
-  if (Number.isNaN(portNumber)) {
-    return value;
-  }
-  if (portNumber >= 0) {
-    return portNumber;
-  }
-  throw new Error('Invalid port value: ' + value);
-}

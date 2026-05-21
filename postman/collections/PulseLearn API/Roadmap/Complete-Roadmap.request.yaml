@@ -1,0 +1,33 @@
+$kind: http-request
+name: Complete Roadmap
+method: POST
+url: '{{baseUrl}}/api/roadmap/{{roadmapId}}/complete'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "finalScore": 90,
+      "walletSecret": ""
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is valid", () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 400, 403, 404]);
+      });
+      if (pm.response.code === 200) {
+        pm.test("Success returned", () => {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("success");
+          pm.expect(json.success).to.be.true;
+        });
+        pm.test("Stellar tx hash present", () => {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("stellar_tx_hash");
+        });
+      }

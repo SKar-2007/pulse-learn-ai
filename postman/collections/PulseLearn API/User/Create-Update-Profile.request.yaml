@@ -1,0 +1,28 @@
+$kind: http-request
+name: 'Create / Update Profile'
+method: POST
+url: '{{baseUrl}}/api/user/profile'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "learning_style": "visual",
+      "expertise_level": "beginner",
+      "communication_tone": "friendly",
+      "study_domain": "computer science",
+      "preferred_session_minutes": 30
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      pm.test("Profile returned", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("profile");
+        pm.expect(json.profile).to.not.be.null;
+      });

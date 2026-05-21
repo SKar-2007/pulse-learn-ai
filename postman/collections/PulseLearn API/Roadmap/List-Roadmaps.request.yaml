@@ -1,0 +1,22 @@
+$kind: http-request
+name: List Roadmaps
+method: GET
+url: '{{baseUrl}}/api/roadmap'
+order: 1000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      pm.test("Roadmaps array returned", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("roadmaps");
+        pm.expect(json.roadmaps).to.be.an("array");
+      });
+      if (pm.response.code === 200) {
+        const json = pm.response.json();
+        if (json.roadmaps && json.roadmaps.length > 0) {
+          pm.environment.set("roadmapId", json.roadmaps[0].id);
+          console.log("Saved roadmapId:", json.roadmaps[0].id);
+        }
+      }

@@ -1,0 +1,19 @@
+$kind: http-request
+name: Get Roadmap
+method: GET
+url: '{{baseUrl}}/api/roadmap/{{roadmapId}}'
+order: 2000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is valid", () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);
+      });
+      if (pm.response.code === 200) {
+        pm.test("Roadmap returned", () => {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("roadmap");
+          pm.expect(json.roadmap).to.not.be.null;
+        });
+      }

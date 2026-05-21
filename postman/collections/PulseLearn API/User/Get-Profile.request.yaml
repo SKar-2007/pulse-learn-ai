@@ -1,0 +1,14 @@
+$kind: http-request
+name: Get Profile
+method: GET
+url: '{{baseUrl}}/api/user/profile'
+order: 2000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      pm.test("Profile field exists", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("profile");
+      });

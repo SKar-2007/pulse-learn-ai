@@ -1,0 +1,29 @@
+$kind: http-request
+name: Generate Quiz
+method: POST
+url: '{{baseUrl}}/api/node/quiz'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nodeId": "{{nodeId}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is valid", () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 400, 404]);
+      });
+      if (pm.response.code === 200) {
+        pm.test("Questions array returned", () => {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("questions");
+          pm.expect(json.questions).to.be.an("array");
+          pm.expect(json.questions.length).to.be.above(0);
+        });
+      }

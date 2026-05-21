@@ -36,7 +36,7 @@ export async function createRoadmap({ userId, userEmail, title, timeBudgetHours,
   const { data, error } = await supabase
     .from('roadmaps')
     .insert({
-      user_id: userId,
+      owner_id: userId,
       title,
       time_budget_hours: normalizeNumber(timeBudgetHours, 10),
       target_date: targetDate,
@@ -76,7 +76,7 @@ export async function getRoadmapsByUser(userId) {
   const { data, error } = await supabase
     .from('roadmaps')
     .select('*')
-    .eq('user_id', userId)
+    .eq('owner_id', userId)
     .order('created_at', { ascending: false });
 
   if (error) throw handleSupabaseError(error, 'Unable to retrieve roadmaps');
@@ -106,10 +106,10 @@ export async function insertNodes(roadmapId, nodesArray) {
     parent_node_id: node.parentNodeId || null,
     title: node.title,
     summary: node.summary,
-    estimated_minutes: normalizeNumber(node.estimatedMinutes, 15),
+    estimated_minutes: normalizeNumber(node.estimated_minutes || node.estimatedMinutes, 15),
     sequence_order: index + 1,
     status: node.status || 'locked',
-    remediation_depth: normalizeNumber(node.remediationDepth, 0),
+    remediation_depth: normalizeNumber(node.remediation_depth || node.remediationDepth, 0),
   }));
 
   const { data, error } = await supabase.from('nodes').insert(rows).select();

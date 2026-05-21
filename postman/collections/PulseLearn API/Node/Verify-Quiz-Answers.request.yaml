@@ -1,0 +1,37 @@
+$kind: http-request
+name: Verify Quiz Answers
+method: POST
+url: '{{baseUrl}}/api/node/verify'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nodeId": "{{nodeId}}",
+      "roadmapId": "{{roadmapId}}",
+      "userAnswers": [
+        { "q_id": 1, "answer": "Supervised learning uses labeled data to train models to make predictions." }
+      ]
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is valid", () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 400, 403, 404]);
+      });
+      if (pm.response.code === 200) {
+        pm.test("Evaluation result has required fields", () => {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("passed");
+          pm.expect(json).to.have.property("score");
+          pm.expect(json).to.have.property("feedback");
+        });
+        pm.test("Score is between 0 and 100", () => {
+          const json = pm.response.json();
+          pm.expect(json.score).to.be.within(0, 100);
+        });
+      }

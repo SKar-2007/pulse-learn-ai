@@ -1,19 +1,30 @@
-import { getUserFromAccessToken } from '../services/supabaseService.js';
-import { HttpError } from '../utils/httpError.js';
+import { createClient } from '@supabase/supabase-js';
 
-export default async function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization || req.headers.Authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-  if (!token) {
-    return next(new HttpError('Missing Authorization header.', 401, 'missing_authorization'));
+export async function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing authorization token' });
   }
+
+  const token = authHeader.split(' ')[1];
 
   try {
-    const user = await getUserFromAccessToken(token);
-    req.user = user;
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    req.user = user; // Now available in all route handlers as req.user.id
     next();
-  } catch (error) {
-    next(new HttpError('Invalid authorization token.', 401, 'invalid_authorization'));
+  } catch (err) {
+    return res.status(401).json({ error: 'Authentication failed' });
   }
 }
+
+// Maintaining default export for backward compatibility if needed, but PRD uses named export
+export default requireAuth;

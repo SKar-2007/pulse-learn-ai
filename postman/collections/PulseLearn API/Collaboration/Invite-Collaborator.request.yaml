@@ -1,0 +1,35 @@
+$kind: http-request
+name: Invite Collaborator
+method: POST
+url: '{{baseUrl}}/api/collab/invite'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "roadmap_id": "{{roadmapId}}",
+      "invitee_email": "collaborator@example.com",
+      "role": "viewer"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is valid", () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 403, 404, 500]);
+      });
+      if (pm.response.code === 200) {
+        pm.test("Collaborator record returned", () => {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("collaborator");
+        });
+      }
+      if (pm.response.code === 404) {
+        pm.test("Error message present", () => {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("error");
+        });
+      }

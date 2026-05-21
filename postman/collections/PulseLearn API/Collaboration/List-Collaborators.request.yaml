@@ -1,0 +1,19 @@
+$kind: http-request
+name: List Collaborators
+method: GET
+url: '{{baseUrl}}/api/collab/{{roadmapId}}'
+order: 2000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is valid", () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);
+      });
+      if (pm.response.code === 200) {
+        pm.test("Collaborators array returned", () => {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("collaborators");
+          pm.expect(json.collaborators).to.be.an("array");
+        });
+      }

@@ -1,0 +1,34 @@
+$kind: http-request
+name: Analytics Query
+method: POST
+url: '{{baseUrl}}/api/analytics/query'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "query": "Show me my quiz scores over time"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is valid", () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 400, 500]);
+      });
+      if (pm.response.code === 200) {
+        pm.test("Chart config returned", () => {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("chart");
+          pm.expect(json.chart).to.not.be.null;
+        });
+      }
+      if (pm.response.code === 400) {
+        pm.test("Error message returned", () => {
+          const json = pm.response.json();
+          pm.expect(json).to.have.property("error");
+        });
+      }

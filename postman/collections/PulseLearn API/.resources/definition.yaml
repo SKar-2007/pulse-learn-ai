@@ -1,0 +1,10 @@
+$kind: collection
+name: PulseLearn API
+description: |-
+  Complete API collection for PulseLearn AI — an AI-powered learning roadmap platform.
+  Covers user profiles, roadmap generation, node quizzes, analytics, and collaboration.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{authToken}}'

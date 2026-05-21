@@ -1,0 +1,41 @@
+$kind: http-request
+name: Generate Roadmap
+method: POST
+url: '{{baseUrl}}/api/roadmap/generate'
+order: 3000
+body:
+  type: formdata
+  content:
+    - key: title
+      type: text
+      value: Introduction to Machine Learning
+    - key: timeBudgetHours
+      type: text
+      value: '20'
+    - key: targetDate
+      type: text
+      value: '2025-12-31'
+    - key: text
+      type: text
+      value: 'This course covers fundamentals of machine learning: supervised learning, unsupervised learning, neural networks, and model evaluation techniques.'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      pm.test("Roadmap generated", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("roadmap");
+        pm.expect(json.roadmap).to.not.be.null;
+      });
+      if (pm.response.code === 200) {
+        const json = pm.response.json();
+        if (json.roadmap && json.roadmap.id) {
+          pm.environment.set("roadmapId", json.roadmap.id);
+          console.log("Saved roadmapId:", json.roadmap.id);
+        }
+        if (json.roadmap && json.roadmap.nodes && json.roadmap.nodes.length > 0) {
+          pm.environment.set("nodeId", json.roadmap.nodes[0].id);
+          console.log("Saved nodeId:", json.roadmap.nodes[0].id);
+        }
+      }

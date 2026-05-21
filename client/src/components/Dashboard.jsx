@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { LogOut, LayoutDashboard, BarChart2, Users, Upload, RefreshCw } from 'lucide-react';
+import ReactConfetti from 'react-confetti';
 import { supabase } from '../lib/supabaseClient';
 import UploadForm from './UploadForm';
 import SkillTree from './SkillTree';
@@ -7,12 +8,15 @@ import QuizPanel from './QuizPanel';
 import NodeCard from './NodeCard';
 import AnalyticsDashboard from './analytics/AnalyticsDashboard';
 import CollabSidebar from './collab/CollabSidebar';
+import PresenceBar from './collab/PresenceBar';
 import { useRealtime } from '../hooks/useRealtime';
 import useRoadmap from '../hooks/useRoadmap';
 import useQuiz from '../hooks/useQuiz';
 
 export default function Dashboard({ session, profile }) {
     const [activeTab, setActiveTab] = useState('roadmap');
+    const [showConfetti, setShowConfetti] = useState(false);
+
     const {
         roadmaps,
         selectedRoadmap,
@@ -42,7 +46,7 @@ export default function Dashboard({ session, profile }) {
         );
     }, [setNodes]);
 
-    useRealtime(selectedRoadmap?.id, {
+    const { presence } = useRealtime(selectedRoadmap?.id, session.user.id, {
         onNodeUpdate: handleNodeUpdate,
         onCommentAdded: (comment) => console.log('New comment:', comment),
     });
@@ -55,10 +59,24 @@ export default function Dashboard({ session, profile }) {
         }
     };
 
+    const onQuizVerify = (result) => {
+        if (result.passed) {
+            // Check if all core nodes are now completed
+            const otherNodes = nodes.filter(n => n.id !== result.node.id && n.remediation_depth === 0);
+            const allDone = otherNodes.every(n => n.status === 'completed');
+            if (allDone) {
+                setShowConfetti(true);
+                setTimeout(() => setShowConfetti(false), 5000);
+            }
+        }
+    };
+
     const activeNode = nodes.find((node) => node.status !== 'completed') || nodes[0];
 
     return (
-        <div className="min-h-screen bg-gray-950 text-gray-100 flex">
+        <div className="min-h-screen bg-gray-950 text-gray-100 flex relative">
+            {showConfetti && <ReactConfetti numberOfPieces={200} recycle={false} gravity={0.1} />}
+
             {/* Sidebar Navigation */}
             <div className="w-20 bg-gray-900 border-r border-gray-800 flex flex-col items-center py-8 gap-8">
                 <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-xl">P</div>
@@ -91,8 +109,9 @@ export default function Dashboard({ session, profile }) {
                 {/* Header */}
                 <header className="h-20 border-b border-gray-800 flex items-center justify-between px-8 bg-gray-950/50 backdrop-blur-md sticky top-0 z-10">
                     <div>
-                        <h1 className="text-xl font-bold text-white capitalize">
+                        <h1 className="text-xl font-bold text-white capitalize flex items-center gap-4">
                             {activeTab} Dashboard
+                            {selectedRoadmap && <PresenceBar presence={presence} />}
                         </h1>
                         <p className="text-xs text-gray-500">Welcome back, {profile.expertise_level} learner</p>
                     </div>
@@ -120,7 +139,6 @@ export default function Dashboard({ session, profile }) {
                     {activeTab === 'roadmap' ? (
                         <div className="p-8 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
                             <div className="space-y-8">
-                                {/* Roadmap Selection / List */}
                                 {!selectedRoadmap ? (
                                     <div className="space-y-6">
                                         <section className="bg-gray-900/50 border border-gray-800 rounded-3xl p-8 text-center max-w-2xl mx-auto">
@@ -128,8 +146,8 @@ export default function Dashboard({ session, profile }) {
                                                 <Upload size={32} />
                                             </div>
                                             <h2 className="text-2xl font-bold text-white mb-2">Create Your First Roadmap</h2>
-                                            <p className="text-gray-400 mb-8 px-8">Upload a syllabus or course material and our AI will build a personalized learning tree for you.</p>
-                                            <UploadForm onRoadmapGenerated={loadRoadmaps} token={session.access_token} />
+                                            <p className="text-gray-400 mb-8 px-8">Upload a syllabus and get a personalized path.</p>
+                                            <UploadForm onRoadmapGenerated={() => loadRoadmaps(session.access_token)} token={session.access_token} />
                                         </section>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -150,7 +168,6 @@ export default function Dashboard({ session, profile }) {
                                     </div>
                                 ) : (
                                     <div className="space-y-8">
-                                        {/* Active Roadmap View */}
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <button
@@ -161,9 +178,6 @@ export default function Dashboard({ session, profile }) {
                                                 </button>
                                                 <h2 className="text-3xl font-bold text-white">{selectedRoadmap.title}</h2>
                                             </div>
-                                            <button className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all">
-                                                Mint Receipt
-                                            </button>
                                         </div>
 
                                         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8">
@@ -185,17 +199,8 @@ export default function Dashboard({ session, profile }) {
                                                 {activeNode && (
                                                     <QuizPanel
                                                         node={activeNode}
-                                                        answer={answer}
-                                                        setAnswer={setAnswer}
-                                                        onSubmit={() => submitAnswer({
-                                                            nodeId: activeNode.id,
-                                                            userAnswer: answer,
-                                                            expectedSummary: activeNode.summary,
-                                                            roadmapId: selectedRoadmap.id,
-                                                            token: session.access_token,
-                                                        })}
-                                                        feedback={feedback}
-                                                        loading={quizLoading}
+                                                        session={session}
+                                                        onVerify={onQuizVerify}
                                                     />
                                                 )}
                                             </div>
@@ -204,7 +209,6 @@ export default function Dashboard({ session, profile }) {
                                 )}
                             </div>
 
-                            {/* Collaboration Sidebar */}
                             {selectedRoadmap && (
                                 <CollabSidebar roadmapId={selectedRoadmap.id} ownerId={selectedRoadmap.owner_id} />
                             )}
@@ -216,7 +220,7 @@ export default function Dashboard({ session, profile }) {
             </div>
 
             {message && (
-                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-900/40 font-medium z-50">
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl z-50">
                     {message}
                 </div>
             )}
