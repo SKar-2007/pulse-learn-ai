@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MBTI_QUESTIONS } from '../../lib/mbtiQuestions';
 import axios from 'axios';
-import {API_BASE} from '../../lib/apiClient';
+import { apiUrl, authHeaders } from '../../lib/apiClient';
 
 export default function MBTITest({ session, onComplete }) {
     const [currentQ, setCurrentQ] = useState(0);
@@ -23,9 +23,9 @@ export default function MBTITest({ session, onComplete }) {
             setSaving(true);
             try {
                 const { data } = await axios.post(
-                    `${API_BASE}/api/user/mbti`,
+                    apiUrl('/api/user/mbti'),
                     { answers: newAnswers },
-                    { headers: { Authorization: `Bearer ${session.access_token}` } }
+                    { headers: authHeaders(session?.access_token) }
                 );
                 setResult(data.profile);
             } catch (err) {

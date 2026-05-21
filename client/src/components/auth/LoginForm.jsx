@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabaseClient';
-import { Sparkles, Mail, Lock, ArrowRight, Github } from 'lucide-react';
-import {API_BASE} from '../../lib/apiClient';
+import { Sparkles } from 'lucide-react';
 
 const enableGoogleAuth = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === 'true';
 
@@ -20,8 +19,6 @@ export default function LoginForm() {
         ? `Welcome back, ${savedPersona.expertise_level} ${savedPersona.study_domain || 'scholar'}`
         : "Your personality-aware learning journey starts here.";
 
-    const apiUrl = API_BASE;
-
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();
         setLoading(true);
@@ -30,25 +27,14 @@ export default function LoginForm() {
 
         if (isSignup) {
             try {
-                const response = await fetch(`${apiUrl}/api/user/signup`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ email, password }),
-                });
+                const { data, error } = await supabase.auth.signUp({ email, password });
+                if (error) throw error;
 
-                const body = await response.json();
-                if (!response.ok) {
-                    throw new Error(body.error || 'Signup failed.');
-                }
-
-                if (body.session) {
-                    await supabase.auth.setSession(body.session);
-                    setMessage('Account created and signed in. Redirecting...');
-                } else {
-                    setMessage('Account created. Please sign in to continue.');
-                }
+                setMessage(
+                    data?.session
+                        ? 'Account created and signed in. Redirecting...'
+                        : 'Account created. Please verify your email before signing in.'
+                );
             } catch (err) {
                 setError(err.message || 'Unable to create account.');
             }

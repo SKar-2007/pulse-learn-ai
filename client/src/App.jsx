@@ -25,6 +25,10 @@ export default function App() {
   const [loading, setLoading] = useState(startDemo ? false : true);
 
   useEffect(() => {
+    document.documentElement.dataset.theme = 'dark';
+  }, []);
+
+  useEffect(() => {
     if (startDemo) return;
 
     supabase.auth.getSession().then(({ data: { session } }) => {

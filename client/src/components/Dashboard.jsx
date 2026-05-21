@@ -1,635 +1,526 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { LogOut, Upload, Users, Sparkles, Layout } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import ReactConfetti from 'react-confetti';
+import { useEffect, useMemo, useState } from 'react';
+import { LogOut, Search, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
 import axios from 'axios';
 import { supabase } from '../lib/supabaseClient';
 import { apiUrl, authHeaders } from '../lib/apiClient';
-import useRoadmap from '../hooks/useRoadmap';
-import useWorkspace from '../hooks/useWorkspace';
-import useAIAssistant from '../hooks/useAIAssistant';
-import useMCPBridge from '../hooks/useMCPBridge';
-import { useRealtime } from '../hooks/useRealtime';
-import WorkspaceCanvas from './workspace/WorkspaceCanvas';
-import BlockPalette from './workspace/BlockPalette';
-import TemplateGallery from './workspace/TemplateGallery';
-import MBTIInsights from './auth/MBTIInsights';
-import CollabSidebar from './collab/CollabSidebar';
-import PresenceBar from './collab/PresenceBar';
-import AICompanion from './workspace/AICompanion';
-import GlobalSearch from './search/GlobalSearch';
-import PageSidebar from './workspace/PageSidebar';
-import PageBreadcrumb from './workspace/PageBreadcrumb';
-import WorkspaceSettings from './workspace/WorkspaceSettings';
-import StellarModal from './StellarModal';
-import UploadForm from './UploadForm';
+
+const API_PRESETS = [
+  { label: 'Health check', method: 'GET', path: '/api/health', payload: '{}' },
+  { label: 'User profile', method: 'GET', path: '/api/user/profile', payload: '{}' },
+  { label: 'List roadmaps', method: 'GET', path: '/api/roadmap', payload: '{}' },
+  { label: 'AI assistant sample', method: 'POST', path: '/api/ai-assistant', payload: '{"messages":[{"role":"user","content":"Explain spaced repetition in a study plan."}],"pageContext":"","mbtiType":"INTJ"}' },
+  { label: 'Search demo', method: 'GET', path: '/api/search?q=linear', payload: '{}' },
+];
 
 export default function Dashboard({ session, profile }) {
-    const [activeTab, setActiveTab] = useState('roadmap');
-    const [toastMessage, setToastMessage] = useState('');
-    const toastTimer = useRef(null);
-    const [showConfetti, setShowConfetti] = useState(false);
-    const [stellarTxHash, setStellarTxHash] = useState(null);
-    const [showProfile, setShowProfile] = useState(false);
-    const [isShared, setIsShared] = useState(false);
-    const [showAI, setShowAI] = useState(false);
-    const [showTemplates, setShowTemplates] = useState(false);
-    const [savedTemplates, setSavedTemplates] = useState([]);
+  const [roadmaps, setRoadmaps] = useState([]);
+  const [selectedRoadmapId, setSelectedRoadmapId] = useState(null);
+  const [topic, setTopic] = useState('');
+  const [hours, setHours] = useState('5');
+  const [targetDate, setTargetDate] = useState('');
+  const [status, setStatus] = useState('Ready.');
+  const [healthStatus, setHealthStatus] = useState('Unknown');
+  const [aiInput, setAIInput] = useState('What is the best way to learn this topic?');
+  const [aiMessages, setAIMessages] = useState([{ role: 'assistant', content: 'Enter a question and I will answer it in your learning style.' }]);
+  const [aiLoading, setAILoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('linear algebra');
+  const [searchResults, setSearchResults] = useState(null);
+  const [endpointMethod, setEndpointMethod] = useState('GET');
+  const [endpointPath, setEndpointPath] = useState('/api/health');
+  const [endpointPayload, setEndpointPayload] = useState('{}');
+  const [endpointResult, setEndpointResult] = useState('No response yet.');
+  const [loading, setLoading] = useState(false);
 
-    const showToast = (message, duration = 3000) => {
-        setToastMessage(message);
-        if (toastTimer.current) {
-            window.clearTimeout(toastTimer.current);
-        }
-        toastTimer.current = window.setTimeout(() => setToastMessage(''), duration);
-    };
+  const selectedRoadmap = useMemo(
+    () => roadmaps.find((roadmap) => roadmap.id === selectedRoadmapId) || roadmaps[0] || null,
+    [roadmaps, selectedRoadmapId]
+  );
 
-    const clearToast = () => {
-        setToastMessage('');
-        if (toastTimer.current) {
-            window.clearTimeout(toastTimer.current);
-        }
-    };
+  useEffect(() => {
+    if (!selectedRoadmapId && roadmaps.length) {
+      setSelectedRoadmapId(roadmaps[0].id);
+    }
+  }, [roadmaps, selectedRoadmapId]);
 
-    const apiHeaders = authHeaders(session?.access_token);
+  useEffect(() => {
+    fetchRoadmaps();
+    checkHealth();
+  }, [session]);
 
-    const {
-        roadmaps,
-        selectedRoadmap,
-        nodes,
-        loading,
-        message: roadmapMessage,
-        setMessage: setRoadmapMessage,
-        loadRoadmaps,
-        loadRoadmap,
-        setSelectedRoadmap,
-        setNodes,
-    } = useRoadmap();
+  const headers = authHeaders(session?.access_token);
 
-    const { layout, setLayout, saveLayout, pages, currentPageId, currentPage, selectPage, createPage, renamePage, deletePage, loading: workspaceLoading } = useWorkspace(selectedRoadmap?.id, session, isShared);
+  const fetchRoadmaps = async () => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get(apiUrl('/api/roadmap'), { headers });
+      setRoadmaps(data.roadmaps || []);
+      setStatus('Roadmaps updated.');
+    } catch (err) {
+      console.error(err);
+      setStatus('Unable to load roadmaps.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const workspaceNotes = useMemo(() => {
-        return layout
-            .filter(b => b.type === 'notes' && b.config?.text)
-            .map(b => b.config.text)
-            .join('\n\n');
-    }, [layout]);
+  const checkHealth = async () => {
+    try {
+      const { data } = await axios.get(apiUrl('/api/health'));
+      setHealthStatus(data.status === 'ok' ? `OK (${data.environment || 'dev'})` : 'Unavailable');
+    } catch (err) {
+      setHealthStatus('Unavailable');
+      console.error(err);
+    }
+  };
 
-    const currentPagePath = useMemo(() => {
-        if (!currentPage || !pages?.length) return [];
-        const pageById = Object.fromEntries(pages.map((page) => [page.id, page]));
-        const path = [];
-        let page = currentPage;
+  const createRoadmap = async () => {
+    if (!topic.trim()) {
+      setStatus('Enter a topic or syllabus to generate a roadmap.');
+      return;
+    }
 
-        while (page) {
-            path.unshift(page);
-            page = page.parent_page_id ? pageById[page.parent_page_id] : null;
-        }
+    setLoading(true);
+    setStatus('Generating roadmap…');
+    try {
+      const { data } = await axios.post(
+        apiUrl('/api/roadmap/generate'),
+        {
+          title: topic.trim().slice(0, 120),
+          timeBudgetHours: Number(hours) || 5,
+          targetDate: targetDate || null,
+          text: topic.trim(),
+          workspaceNotes: `Profile: ${profile.mbti_type} / ${profile.study_domain}`,
+        },
+        { headers }
+      );
 
-        return path;
-    }, [currentPage, pages]);
+      if (data?.roadmap) {
+        setRoadmaps([data.roadmap, ...roadmaps.filter((roadmap) => roadmap.id !== data.roadmap.id)]);
+        setSelectedRoadmapId(data.roadmap.id);
+        setStatus(`Roadmap generated: ${data.roadmap.title}`);
+      } else {
+        setStatus('Roadmap generation returned no data.');
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus(err?.response?.data?.error || 'Roadmap generation failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const triggerAutomation = async (triggerType, triggerData) => {
-        if (!selectedRoadmap?.id || !session?.access_token) return;
-        try {
-            await axios.post(
-                apiUrl('/api/automation/trigger'),
-                {
-                    roadmap_id: selectedRoadmap.id,
-                    trigger_type: triggerType,
-                    trigger_data: triggerData,
-                },
-                { headers: authHeaders(session.access_token) }
-            );
-        } catch (err) {
-            console.error(`Automation trigger failed (${triggerType}):`, err);
-        }
-    };
+  const completeRoadmap = async () => {
+    if (!selectedRoadmap) {
+      setStatus('Select a roadmap first.');
+      return;
+    }
+    setLoading(true);
+    setStatus('Completing roadmap…');
+    try {
+      const { data } = await axios.post(
+        apiUrl(`/api/roadmap/${selectedRoadmap.id}/complete`),
+        { finalScore: 100 },
+        { headers }
+      );
+      setStatus(data.success ? 'Roadmap completion triggered.' : 'Completion request returned no success flag.');
+    } catch (err) {
+      console.error(err);
+      setStatus(err?.response?.data?.error || 'Roadmap completion failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const { messages: aiMessages, loading: aiLoading, sendMessage: sendAIMessage } = useAIAssistant(session, profile, workspaceNotes);
+  const sendAssistant = async () => {
+    if (!aiInput.trim()) {
+      setStatus('Enter a question for the assistant.');
+      return;
+    }
 
-    const { connections, loading: mcpLoading, saveConnection, removeConnection } = useMCPBridge(selectedRoadmap?.id, session);
-    const [automationRules, setAutomationRules] = useState([]);
-    const [automationLoading, setAutomationLoading] = useState(false);
+    const nextMessages = [...aiMessages.filter((msg) => msg.content !== 'Enter a question and I will answer it in your learning style.'), { role: 'user', content: aiInput.trim() }];
+    setAIMessages(nextMessages);
+    setAIInput('');
+    setAILoading(true);
+    setStatus('Waiting for AI response…');
 
-    useEffect(() => {
-        if (session?.access_token) {
-            loadRoadmaps(session.access_token);
-        }
-    }, [session, loadRoadmaps]);
+    try {
+      const { data } = await axios.post(
+        apiUrl('/api/ai-assistant'),
+        {
+          messages: nextMessages,
+          pageContext: selectedRoadmap?.title || '',
+          mbtiType: profile?.mbti_type || 'INTJ',
+        },
+        { headers }
+      );
+      setAIMessages([...nextMessages, { role: 'assistant', content: data.reply || 'No reply from AI.' }]);
+      setStatus('AI response received.');
+    } catch (err) {
+      console.error(err);
+      setAIMessages([...nextMessages, { role: 'assistant', content: 'AI request failed.' }]);
+      setStatus(err?.response?.data?.error || 'AI request failed.');
+    } finally {
+      setAILoading(false);
+    }
+  };
 
-    useEffect(() => {
-        const stored = window.localStorage.getItem('pulse_saved_templates');
-        if (stored) {
-            try {
-                setSavedTemplates(JSON.parse(stored));
-            } catch (err) {
-                console.warn('Invalid saved templates', err);
-            }
-        }
-    }, []);
+  const runSearch = async () => {
+    if (!searchQuery.trim()) {
+      setStatus('Enter a search query.');
+      return;
+    }
 
-    const persistSavedTemplates = (templates) => {
-        setSavedTemplates(templates);
-        window.localStorage.setItem('pulse_saved_templates', JSON.stringify(templates));
-    };
+    setLoading(true);
+    setStatus('Searching…');
+    try {
+      const { data } = await axios.get(apiUrl('/api/search'), {
+        headers,
+        params: { q: searchQuery.trim() },
+      });
+      setSearchResults(data.results || {});
+      setStatus('Search complete.');
+    } catch (err) {
+      console.error(err);
+      setSearchResults(null);
+      setStatus(err?.response?.data?.error || 'Search failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleSaveCurrentTemplate = () => {
-        if (!currentPageId) {
-            showToast('Select a page before saving a template.');
-            return;
-        }
+  const runEndpoint = async (method, path, payload) => {
+    const normalizedPath = path.startsWith('/api') ? path : `/api${path}`;
+    setLoading(true);
+    setStatus(`Calling ${method} ${normalizedPath}`);
+    try {
+      const requestConfig = {
+        method: method.toLowerCase(),
+        url: apiUrl(normalizedPath),
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      };
+      if (method !== 'GET' && payload.trim()) {
+        requestConfig.data = JSON.parse(payload);
+      }
+      const { data } = await axios(requestConfig);
+      setEndpointResult(JSON.stringify(data, null, 2));
+      setStatus(`${method} ${normalizedPath} succeeded.`);
+    } catch (err) {
+      console.error(err);
+      const errorBody = err.response?.data ?? err.message;
+      setEndpointResult(typeof errorBody === 'string' ? errorBody : JSON.stringify(errorBody, null, 2));
+      setStatus(`${method} ${normalizedPath} failed.`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        const name = window.prompt('Name this new template', currentPage?.title ? `${currentPage.title} Template` : 'My Workspace Template');
-        if (!name) return;
+  const handlePresetEndpoint = (preset) => {
+    setEndpointMethod(preset.method);
+    setEndpointPath(preset.path);
+    setEndpointPayload(preset.payload);
+    runEndpoint(preset.method, preset.path, preset.payload);
+  };
 
-        const template = {
-            id: `template-${Date.now()}`,
-            name,
-            description: currentPage?.title ? `Saved from ${currentPage.title}` : 'Saved workspace template',
-            layout,
-            originPage: currentPage?.title || 'Current page',
-            createdAt: new Date().toISOString(),
-        };
+  return (
+    <div className="min-h-screen bg-black text-white">
+      <div className="flex min-h-screen">
+        <aside className="w-[280px] border-r border-white/10 px-6 py-8 flex flex-col gap-8">
+          <div>
+            <div className="inline-flex items-center gap-3 mb-8">
+              <div className="flex h-12 w-12 items-center justify-center rounded-3xl border border-white/10 text-xl font-black">P</div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-white/50">Pulse Learn</p>
+                <h2 className="text-xl font-black">API Workspace</h2>
+              </div>
+            </div>
 
-        persistSavedTemplates([template, ...savedTemplates]);
-        showToast('Template saved locally.');
-    };
+            <div className="space-y-4">
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+                <p className="text-[10px] uppercase tracking-[0.35em] text-white/50">Learner profile</p>
+                <p className="mt-4 text-sm font-semibold text-white">{profile.study_domain || 'General'} · {profile.expertise_level}</p>
+                <p className="text-xs text-white/50 mt-1">{profile.mbti_type}</p>
+              </div>
 
-    const handleDuplicatePage = async () => {
-        if (!currentPageId || !selectedRoadmap?.id) return;
-        try {
-            const { data } = await axios.post(
-                apiUrl(`/api/workspace/${selectedRoadmap.id}/pages/${currentPageId}/duplicate`),
-                { title: `Copy of ${currentPage?.title || 'Page'}` },
-                { headers: authHeaders(session.access_token) }
-            );
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+                <p className="text-[10px] uppercase tracking-[0.35em] text-white/50">Backend health</p>
+                <p className="mt-4 text-sm text-white">{healthStatus}</p>
+                <button
+                  type="button"
+                  onClick={checkHealth}
+                  className="mt-4 btn-minimal w-full justify-center"
+                >
+                  <ShieldCheck size={16} />
+                  Recheck
+                </button>
+              </div>
+            </div>
+          </div>
 
-            if (data.page) {
-                showToast('Page duplicated successfully.');
-                selectPage(data.page.id);
-            }
-        } catch (err) {
-            console.error('Duplicate page failed:', err);
-            showToast('Page duplication failed.');
-        }
-    };
+          <button
+            type="button"
+            onClick={() => supabase.auth.signOut()}
+            className="btn-minimal w-full justify-center"
+          >
+            <LogOut size={16} />
+            Sign Out
+          </button>
+        </aside>
 
-    useEffect(() => {
-        const loadAutomationRules = async () => {
-            if (!selectedRoadmap?.id || !session?.access_token) return;
-            setAutomationLoading(true);
-            try {
-                const { data } = await axios.get(
-                    apiUrl(`/api/automation/${selectedRoadmap.id}`),
-                    { headers: authHeaders(session.access_token) }
-                );
-                setAutomationRules(data.rules || []);
-            } catch (err) {
-                console.error('Failed to load automation rules:', err);
-            } finally {
-                setAutomationLoading(false);
-            }
-        };
+        <main className="flex-1 overflow-auto p-8">
+          <div className="max-w-7xl mx-auto space-y-8">
+            <section className="rounded-[2rem] border border-white/10 bg-black/90 p-8">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="space-y-3 max-w-2xl">
+                  <p className="text-xs uppercase tracking-[0.35em] text-white/50">Study plan generator</p>
+                  <h1 className="text-4xl font-black tracking-tight">Generate a roadmap from a topic or syllabus.</h1>
+                  <p className="text-sm text-white/60">
+                    Use your profile to personalize the learning path and create a study plan that fits your next milestone.
+                  </p>
+                </div>
+              </div>
 
-        loadAutomationRules();
-    }, [selectedRoadmap, session]);
-
-    const handleSearchNavigate = async (item, type) => {
-        if (!item || !session?.access_token) return;
-
-        if (type === 'page' || type === 'note') {
-            if (selectedRoadmap?.id !== item.roadmap_id) {
-                await loadRoadmap(item.roadmap_id, session.access_token);
-            }
-
-            if (type === 'page') {
-                selectPage(item.id);
-                showToast(`Navigated to page “${item.title}”.`);
-            } else {
-                selectPage(item.page_id);
-                showToast(`Opened note from “${item.page_title}”.`);
-            }
-            return;
-        }
-
-        if (type === 'node') {
-            if (selectedRoadmap?.id !== item.roadmap_id) {
-                await loadRoadmap(item.roadmap_id, session.access_token);
-            }
-            showToast(`Found node “${item.title}”.`);
-        }
-    };
-
-    const handleNodeUpdate = useCallback((updatedNode) => {
-        setNodes(prev =>
-            prev.some(n => n.id === updatedNode.id)
-                ? prev.map(n => n.id === updatedNode.id ? updatedNode : n)
-                : [...prev, updatedNode]
-        );
-    }, [setNodes]);
-
-    const { presence, trackCursor } = useRealtime(selectedRoadmap?.id, session.user.id, {
-        onNodeUpdate: handleNodeUpdate,
-        onCommentAdded: (comment) => console.log('New comment:', comment),
-    });
-
-    const handleSelectRoadmap = async (roadmap) => {
-        setSelectedRoadmap(roadmap);
-        clearToast();
-        setStellarTxHash(null);
-        if (session?.access_token) {
-            await loadRoadmap(roadmap.id, session.access_token);
-        }
-    };
-
-    const handleAddBlock = (type) => {
-        const newBlock = {
-            i: `block-${Date.now()}`,
-            x: (layout.length * 4) % 12,
-            y: Infinity,
-            w: 4,
-            h: 4,
-            type,
-            config: {}
-        };
-        const newLayout = [...layout, newBlock];
-        setLayout(newLayout);
-        saveLayout(newLayout);
-    };
-
-    const handleRemoveBlock = (id) => {
-        const newLayout = layout.filter(b => b.i !== id);
-        setLayout(newLayout);
-        saveLayout(newLayout);
-    };
-
-    const handleDuplicateBlock = (block) => {
-        const duplicate = {
-            ...block,
-            i: `block-${Date.now()}-dup`,
-            x: Math.min(block.x + 1, 8),
-            y: block.y + 1,
-            config: { ...block.config },
-        };
-        const newLayout = [...layout, duplicate];
-        setLayout(newLayout);
-        saveLayout(newLayout);
-    };
-
-    const handleDetachBlock = async (block) => {
-        if (!selectedRoadmap?.id || !session?.access_token) return;
-        try {
-            const { data } = await axios.post(
-                apiUrl('/api/loop-component'),
-                {
-                    roadmap_id: selectedRoadmap.id,
-                    block_type: block.type,
-                    block_config: block.config,
-                    title: `${block.type} component`,
-                    share_scope: isShared ? 'team' : 'private',
-                },
-                { headers: authHeaders(session.access_token) }
-            );
-
-            const shareLink = `${window.location.origin}/shared/${data.component.share_token}`;
-            window.navigator.clipboard?.writeText(shareLink);
-            showToast('Loop component link copied to clipboard!', 4000);
-        } catch (err) {
-            console.error('Failed to share loop component:', err);
-            showToast('Unable to share this block as a Loop Component.', 4000);
-        }
-    };
-
-    const handleNewPage = async () => {
-        const page = await createPage('New Workspace Page');
-        if (page) selectPage(page.id);
-    };
-
-    const handleNewSubpage = async () => {
-        if (!currentPageId) return;
-        const page = await createPage('New Subpage', currentPageId);
-        if (page) selectPage(page.id);
-    };
-
-    const handleLayoutChange = (newLayout) => {
-        const merged = newLayout.map(item => {
-            const original = layout.find(b => b.i === item.i);
-            return { ...item, type: original?.type, config: original?.config };
-        });
-        setLayout(merged);
-        saveLayout(merged);
-    };
-
-    const handleConfigChange = (blockId, newConfig) => {
-        const newLayout = layout.map(b =>
-            b.i === blockId ? { ...b, config: { ...b.config, ...newConfig } } : b
-        );
-        setLayout(newLayout);
-        // We might want to debounce saveLayout here for high-frequency updates like typing
-        saveLayout(newLayout);
-    };
-
-    const handleMint = async () => {
-        setToastMessage('Minting credential on Stellar...');
-        try {
-            const { data } = await axios.post(
-                apiUrl(`/api/roadmap/${selectedRoadmap.id}/complete`),
-                { finalScore: nodes.length ? (nodes.filter(n => n.status === 'completed').length / nodes.length) * 100 : 100 },
-                { headers: authHeaders(session.access_token) }
-            );
-            setStellarTxHash(data.stellar_tx_hash);
-            showToast('Credential minted successfully!');
-        } catch (err) {
-            console.error('Minting failed:', err);
-            showToast('Minting failed. Please try again.');
-        }
-    };
-
-    const onQuizVerify = async (result) => {
-        if (result.passed) {
-            const otherNodes = nodes.filter(n => n.id !== result.node.id && n.remediation_depth === 0);
-            const allDone = otherNodes.every(n => n.status === 'completed');
-
-            await triggerAutomation('node_completed', {
-                node_id: result.node?.id,
-                node_title: result.node?.title,
-                user_email: session?.user?.email,
-                roadmap_title: selectedRoadmap?.title,
-            });
-
-            if (allDone) {
-                setShowConfetti(true);
-                handleMint();
-                await triggerAutomation('roadmap_completed', {
-                    roadmap_id: selectedRoadmap?.id,
-                    user_email: session?.user?.email,
-                    completed_at: new Date().toISOString(),
-                });
-            }
-        }
-    };
-
-    return (
-        <div className="min-h-screen bg-black text-white flex relative font-sans">
-            {showConfetti && <ReactConfetti numberOfPieces={200} recycle={false} gravity={0.1} />}
-
-            {/* Profile Overlay */}
-            <AnimatePresence>
-                {showProfile && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowProfile(false)}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="relative z-10 w-full max-w-xl"
-                        >
-                            <MBTIInsights profile={profile} />
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* Sidebar Navigation */}
-            <div className="w-20 bg-black border-r border-white/10 flex flex-col items-center py-8 gap-8 z-30">
-                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center font-black text-2xl">P</div>
-
-                <nav className="flex flex-col gap-6 flex-1 mt-8">
-                    {roadmaps.map(r => (
-                        <button
-                            key={r.id}
-                            onClick={() => handleSelectRoadmap(r)}
-                            className={`w-12 h-12 rounded-2xl border border-white/10 bg-white/5 text-white flex items-center justify-center transition-all ${selectedRoadmap?.id === r.id ? 'border-white text-white' : 'border-white/10 text-white/60 hover:border-white/30'}`}
-                            title={r.title}
-                        >
-                            {r.title[0].toUpperCase()}
-                        </button>
-                    ))}
-                    <button
-                        onClick={() => setActiveTab('upload')}
-                        className="w-12 h-12 rounded-2xl border border-white/10 bg-black text-white/70 hover:border-white/30 hover:text-white transition-all flex items-center justify-center"
-                    >
-                        <Upload size={20} />
-                    </button>
-                </nav>
+              <div className="mt-8 grid gap-4 lg:grid-cols-[2fr_1fr]">
+                <div className="space-y-4">
+                  <input
+                    type="text"
+                    placeholder="Enter a topic or paste a syllabus excerpt"
+                    value={topic}
+                    onChange={(event) => setTopic(event.target.value)}
+                    className="input-minimal"
+                  />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Hours budget"
+                      value={hours}
+                      onChange={(event) => setHours(event.target.value)}
+                      className="input-minimal"
+                    />
+                    <input
+                      type="date"
+                      value={targetDate}
+                      onChange={(event) => setTargetDate(event.target.value)}
+                      className="input-minimal"
+                    />
+                  </div>
+                </div>
 
                 <button
-                    onClick={() => supabase.auth.signOut()}
-                    className="p-3 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-all"
+                  type="button"
+                  onClick={createRoadmap}
+                  disabled={loading}
+                  className="btn-minimal w-full h-full"
                 >
-                    <LogOut size={20} />
+                  <ArrowRight size={18} />
+                  Generate roadmap
                 </button>
-            </div>
+              </div>
+            </section>
 
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Header */}
-                <header className="h-20 border-b border-white/10 flex items-center justify-between px-8 bg-black sticky top-0 z-20">
-                    <div
-                        onClick={() => setShowProfile(true)}
-                        className="cursor-pointer group"
-                    >
-                        <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-4 transition-colors">
-                            {selectedRoadmap ? selectedRoadmap.title : 'Welcome to Pulse-Learn'}
-                            {selectedRoadmap && <PresenceBar presence={presence} />}
-                        </h1>
-                        <p className="text-[10px] uppercase tracking-widest font-bold text-white/60">
-                            {profile.mbti_type} • {profile.study_domain || 'General'} • {profile.expertise_level} • <span className="text-white font-black">View Cognitive Profile</span>
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-6">
-                        {selectedRoadmap && (
-                            <>
-                                <button
-                                    onClick={() => setIsShared(!isShared)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 bg-white/5 text-white ${isShared ? 'shadow-none' : ''}`}
-                                >
-                                    <Users size={14} />
-                                    {isShared ? 'Collaborative' : 'Private'}
-                                </button>
-                                <button
-                                    onClick={() => setShowAI(!showAI)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-white text-sm font-bold transition-all ${showAI ? 'shadow-none' : ''}`}
-                                    title="AI Companion"
-                                >
-                                    <Sparkles size={16} className={showAI ? 'animate-pulse' : ''} />
-                                    AI Companion
-                                </button>
-                                <button
-                                    onClick={() => setShowTemplates(true)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-white transition-all font-bold"
-                                    title="Workspace Templates"
-                                >
-                                    <Layout size={16} />
-                                    Templates
-                                </button>
-                            </>
-                        )}
-                        <div className="flex items-center gap-3 pl-4 border-l border-white/10">
-                            <div className="text-right">
-                                <p className="text-sm font-bold text-white leading-tight">{session.user.email.split('@')[0]}</p>
-                                <p className="text-[10px] font-medium text-white/60">Learning OS v3.0</p>
-                            </div>
-                            <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-sm font-black shadow-none">
-                                {session.user.email[0].toUpperCase()}
-                            </div>
-                        </div>
-                    </div>
-                </header>
-
-                <main className="flex-1 flex overflow-hidden relative">
-                    {activeTab === 'upload' ? (
-                        <div className="p-8 max-w-2xl mx-auto w-full">
-                            <UploadForm onComplete={() => setActiveTab('roadmap')} session={session} />
-                        </div>
-                    ) : (
-                        <>
-                            {selectedRoadmap && (
-                                <PageSidebar
-                                    pages={pages}
-                                    currentPageId={currentPageId}
-                                    onPageSelect={selectPage}
-                                    onNewPage={handleNewPage}
-                                    onNewSubpage={handleNewSubpage}
-                                    onRenamePage={async (page) => {
-                                        const title = window.prompt('Rename page', page.title || 'Untitled Page');
-                                        if (!title) return;
-                                        const renamed = await renamePage(page.id, title);
-                                        if (renamed) showToast('Page renamed.');
-                                    }}
-                                    onDeletePage={async (page) => {
-                                        if (!window.confirm(`Delete page “${page.title}”? This cannot be undone.`)) return;
-                                        const deleted = await deletePage(page.id);
-                                        if (deleted) showToast('Page deleted.');
-                                    }}
-                                    onSaveAsTemplate={handleSaveCurrentTemplate}
-                                    onDuplicatePage={handleDuplicatePage}
-                                />
-                            )}
-                            <div className="flex-1 flex flex-col overflow-hidden">
-                                <div className="border-b border-white/10 px-6 py-4 bg-black/95/95">
-                                    <PageBreadcrumb pagePath={currentPagePath} onNavigate={selectPage} />
-                                <div className="mt-2 text-sm text-white/50">
-                                    {currentPage ? `Current page: ${currentPage.title}` : 'Select or create a page to begin'}
-                                </div>
-                                </div>
-                                <WorkspaceCanvas
-                                    layout={layout}
-                                    onLayoutChange={handleLayoutChange}
-                                    onRemoveBlock={handleRemoveBlock}
-                                    onDetachBlock={handleDetachBlock}
-                                    onDuplicateBlock={handleDuplicateBlock}
-                                    onConfigChange={handleConfigChange}
-                                    workspaceNotes={workspaceNotes}
-                                    roadmap={selectedRoadmap}
-                                    session={session}
-                                    presence={presence}
-                                    onCursorMove={(pos) => trackCursor(pos)}
-                                    onVerify={onQuizVerify}
-                                />
-                            </div>
-                            {selectedRoadmap && (
-                                <WorkspaceSettings
-                                    roadmap={selectedRoadmap}
-                                    connections={connections}
-                                    automationRules={automationRules}
-                                    onConnect={(service) => saveConnection(service.id, { connectedAt: new Date().toISOString() })}
-                                    onDisconnect={(connection) => removeConnection(connection.id)}
-                                    onCreateRule={async (rule) => {
-                                        if (!selectedRoadmap?.id || !session?.access_token) return;
-                                        try {
-                                            const { data } = await axios.post(
-                                                apiUrl(`/api/automation/${selectedRoadmap.id}`),
-                                                rule,
-                                                { headers: authHeaders(session.access_token) }
-                                            );
-                                            setAutomationRules((prev) => [...prev, data.rule]);
-                                        } catch (error) {
-                                            console.error('Failed to save automation rule', error);
-                                        }
-                                    }}
-                                    onDeleteRule={async (ruleId) => {
-                                        if (!session?.access_token) return;
-                                        try {
-                                            await axios.delete(
-                                                apiUrl(`/api/automation/${ruleId}`),
-                                                { headers: authHeaders(session.access_token) }
-                                            );
-                                            setAutomationRules((prev) => prev.filter((rule) => rule.id !== ruleId));
-                                        } catch (error) {
-                                            console.error('Failed to delete automation rule', error);
-                                        }
-                                    }}
-                                />
-                            )}
-                            {selectedRoadmap && <CollabSidebar roadmapId={selectedRoadmap.id} ownerId={selectedRoadmap.owner_id} />}
-                            <BlockPalette onSelect={handleAddBlock} />
-                        </>
-                    )}
-                </main>
-            </div>
-
-            <StellarModal
-                txHash={stellarTxHash}
-                roadmapTitle={selectedRoadmap?.title}
-                onClose={() => setStellarTxHash(null)}
-            />
-
-            {toastMessage && (
-                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-white/10 text-white text-xs font-bold rounded-full shadow-2xl z-50 animate-bounce">
-                    {toastMessage}
+            <section className="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
+              <div className="rounded-[2rem] border border-white/10 bg-black/90 p-8">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.35em] text-white/50">Roadmaps</p>
+                    <h2 className="text-2xl font-black">My generated plans</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchRoadmaps}
+                    className="btn-minimal"
+                  >
+                    Refresh list
+                  </button>
                 </div>
-            )}
 
-            <AICompanion
-                session={session}
-                roadmap={selectedRoadmap}
-                profile={profile}
-                workspaceNotes={workspaceNotes}
-                isOpen={showAI}
-                onToggle={() => setShowAI(!showAI)}
-                messages={aiMessages}
-                onSend={sendAIMessage}
-                loading={aiLoading}
-            />
+                <div className="mt-6 space-y-3">
+                  {roadmaps.length ? (
+                    roadmaps.map((roadmap) => (
+                      <button
+                        key={roadmap.id}
+                        type="button"
+                        onClick={() => setSelectedRoadmapId(roadmap.id)}
+                        className={`w-full rounded-3xl border px-5 py-4 text-left transition ${
+                          roadmap.id === selectedRoadmap?.id
+                            ? 'border-white text-white bg-white/10'
+                            : 'border-white/10 text-white/70 bg-white/5 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="font-semibold">{roadmap.title || 'Untitled roadmap'}</span>
+                          <span className="text-[11px] uppercase tracking-[0.35em] text-white/50">{roadmap.created_at?.slice(0, 10) || '---'}</span>
+                        </div>
+                        <p className="mt-2 text-sm text-white/60">{roadmap.summary || roadmap.description || 'Generated study plan from your selected topic.'}</p>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm text-white/60">
+                      No roadmaps yet. Generate one to see it here.
+                    </div>
+                  )}
+                </div>
 
-            <GlobalSearch session={session} onNavigate={handleSearchNavigate} />
+                {selectedRoadmap ? (
+                  <div className="mt-6 rounded-3xl border border-white/10 bg-black/95 p-6">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.35em] text-white/50">Selected roadmap</p>
+                        <h3 className="text-xl font-black text-white">{selectedRoadmap.title}</h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={completeRoadmap}
+                        className="btn-minimal"
+                      >
+                        Complete
+                      </button>
+                    </div>
+                    <p className="mt-4 text-sm text-white/60">ID: {selectedRoadmap.id}</p>
+                  </div>
+                ) : null}
+              </div>
 
-            <TemplateGallery
-                isOpen={showTemplates}
-                onClose={() => setShowTemplates(false)}
-                onApply={(newLayout) => {
-                    setLayout(newLayout);
-                    saveLayout(newLayout);
-                }}
-                savedTemplates={savedTemplates}
-            />
-        </div>
-    );
-}
+              <div className="space-y-6">
+                <div className="rounded-[2rem] border border-white/10 bg-black/90 p-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.35em] text-white/50">Assistant</p>
+                      <h3 className="text-xl font-black">Ask the learning AI</h3>
+                    </div>
+                    <Sparkles size={20} className="text-white/70" />
+                  </div>
 
-function NavIcon({ icon, active, onClick, label }) {
-    return (
-        <button
-            onClick={onClick}
-            title={label}
-            className={`p-3 rounded-xl transition-all duration-200 ${active
-                ? 'bg-white/10 text-white shadow-lg shadow-indigo-500/30'
-                : 'text-white/40 hover:text-white hover:bg-black/90'
-                }`}
-        >
-            {icon}
-            <span className="absolute left-full ml-4 px-2 py-1 bg-black/90 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-                {label}
-            </span>
-        </button>
-    );
+                  <div className="mt-6 space-y-4">
+                    <div className="space-y-2">
+                      <textarea
+                        rows={4}
+                        value={aiInput}
+                        onChange={(event) => setAIInput(event.target.value)}
+                        className="input-minimal min-h-[120px] resize-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={sendAssistant}
+                        disabled={aiLoading}
+                        className="btn-minimal w-full"
+                      >
+                        {aiLoading ? 'Thinking…' : 'Send to AI'}
+                      </button>
+                    </div>
+                    <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm leading-relaxed text-white/80 max-h-72 overflow-y-auto">
+                      {aiMessages.map((message, index) => (
+                        <div key={`${message.role}-${index}`} className="mb-4 last:mb-0">
+                          <p className="text-[10px] uppercase tracking-[0.35em] text-white/50">{message.role}</p>
+                          <p className="text-sm text-white">{message.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[2rem] border border-white/10 bg-black/90 p-6">
+                  <p className="text-xs uppercase tracking-[0.35em] text-white/50">Search</p>
+                  <div className="mt-4 flex gap-3 flex-col sm:flex-row">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      className="input-minimal flex-1"
+                      placeholder="Search workspace, pages, or nodes"
+                    />
+                    <button type="button" onClick={runSearch} className="btn-minimal">
+                      <Search size={16} />
+                      Search
+                    </button>
+                  </div>
+                  {searchResults ? (
+                    <div className="mt-5 space-y-3 text-sm text-white/70">
+                      <div>
+                        <p className="font-semibold text-white">Pages</p>
+                        <p>{searchResults.pages?.length ?? 0} results</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-white">Nodes</p>
+                        <p>{searchResults.nodes?.length ?? 0} results</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-white">Notes</p>
+                        <p>{searchResults.notes?.length ?? 0} results</p>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-white/10 bg-black/90 p-8">
+              <div className="flex items-center justify-between gap-4 flex-col sm:flex-row">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.35em] text-white/50">API explorer</p>
+                  <h2 className="text-2xl font-black">Call any backend route directly</h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {API_PRESETS.map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => handlePresetEndpoint(preset)}
+                      className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.35em] text-white/70 hover:bg-white/10"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_0.8fr]">
+                <div className="space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <select
+                      value={endpointMethod}
+                      onChange={(event) => setEndpointMethod(event.target.value)}
+                      className="input-minimal"
+                    >
+                      {['GET', 'POST', 'PATCH', 'DELETE'].map((method) => (
+                        <option key={method} value={method}>{method}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={endpointPath}
+                      onChange={(event) => setEndpointPath(event.target.value)}
+                      className="input-minimal"
+                      placeholder="/api/health"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => runEndpoint(endpointMethod, endpointPath, endpointPayload)}
+                      className="btn-minimal"
+                    >
+                      Send
+                    </button>
+                  </div>
+                  <textarea
+                    rows={6}
+                    value={endpointPayload}
+                    onChange={(event) => setEndpointPayload(event.target.value)}
+                    className="input-minimal w-full font-mono text-sm"
+                    placeholder="{ }"
+                  />
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-4 overflow-auto max-h-[320px] font-mono text-sm text-white/80">
+                  <pre>{endpointResult}</pre>
+                </div>
+              </div>
+            </section>
+
+            <div className="rounded-[2rem] border border-white/10 bg-black/90 p-6 text-sm text-white/60">
+              Status: {status}
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
 }
