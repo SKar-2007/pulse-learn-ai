@@ -171,3 +171,58 @@ User Message: ${message}
   const result = await chat.sendMessage(prompt);
   return result.response.text();
 }
+
+export async function generateRecap({ pageContext, mbtiType }) {
+  const personalityContext = buildPersonalityContext({ mbti_type: mbtiType });
+  const prompt = `
+${personalityContext}
+
+You are a learning recap engine.
+Create a structured recap for the workspace page context below.
+Return only valid JSON with the keys: headline, completedNodes, weakAreas, collaboratorActivity, nextSteps, studyTimeToday.
+
+Page context:
+${pageContext}
+`;
+
+  const recapModel = genAI.getGenerativeModel({
+    model: 'gemini-1.5-flash',
+    generationConfig: { responseMimeType: 'application/json' },
+  });
+
+  const result = await recapModel.generateContent(prompt);
+  const text = result.response.text();
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error('Recap parse failed, returning raw text', error, text);
+    return { headline: text, completedNodes: [], weakAreas: [], collaboratorActivity: [], nextSteps: [], studyTimeToday: '' };
+  }
+}
+
+export async function workspaceChat({ messages, pageContext, mbtiType, profile }) {
+  const userProfile = profile || { mbti_type: mbtiType };
+  const personalityContext = buildPersonalityContext(userProfile);
+  const modelNoJson = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+  const history = (messages || []).map((msg) => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }],
+  }));
+
+  const chat = modelNoJson.startChat({ history, generationConfig: { maxOutputTokens: 500 } });
+
+  const prompt = `
+${personalityContext}
+
+You are the user's personal learning companion. Use the workspace context below to answer clearly.
+
+Workspace notes:
+${pageContext}
+
+User message: ${messages?.at(-1)?.content || ''}
+`;
+
+  const result = await chat.sendMessage(prompt);
+  return result.response.text();
+}

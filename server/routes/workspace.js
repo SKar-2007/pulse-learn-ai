@@ -59,4 +59,45 @@ router.post('/layout', requireAuth, async (req, res) => {
     }
 });
 
+// GET /api/workspace/:roadmapId/pages — list workspace pages
+router.get('/:roadmap_id/pages', requireAuth, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('workspace_pages')
+            .select('id, title, icon, parent_page_id, sequence_order')
+            .eq('roadmap_id', req.params.roadmap_id)
+            .eq('user_id', req.user.id)
+            .order('sequence_order', { ascending: true });
+
+        if (error) throw error;
+        res.json({ pages: data || [] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/workspace/:roadmapId/pages — create a new workspace page
+router.post('/:roadmap_id/pages', requireAuth, async (req, res) => {
+    try {
+        const { title, parent_page_id, icon } = req.body;
+        const { data, error } = await supabase
+            .from('workspace_pages')
+            .insert({
+                roadmap_id: req.params.roadmap_id,
+                user_id: req.user.id,
+                title: title || 'Untitled Page',
+                icon: icon || '📄',
+                parent_page_id: parent_page_id || null,
+                layout_json: [],
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        res.json({ page: data });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 export default router;
