@@ -9,17 +9,19 @@ const router = express.Router();
 router.post('/', requireAuth, async (req, res) => {
   try {
     const { messages, pageContext, mbtiType } = req.body;
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('user_id', req.user.id)
-      .single();
+    const profile = req.user.id === 'demo-user'
+      ? { mbti_type: 'INTJ', study_domain: 'AI Strategy', expertise_level: 'Intermediate' }
+      : (await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', req.user.id)
+          .single()).data;
 
     const reply = await workspaceChat({ messages, pageContext, mbtiType, profile });
     res.json({ reply });
   } catch (err) {
     console.error('AI assistant error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'AI service is unavailable. Please try again in a moment.' });
   }
 });
 

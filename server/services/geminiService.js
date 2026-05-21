@@ -2,11 +2,14 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { MBTI_AI_PROFILES } from '../lib/mbtiProfiles.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const requestOptions = { apiVersion: 'v1' };
+const PRIMARY_MODEL = 'gemini-1.5-flash';
+const FALLBACK_MODEL = 'text-bison@001';
 
 const model = genAI.getGenerativeModel({
-  model: 'gemini-1.5-flash',
+  model: PRIMARY_MODEL,
   generationConfig: { responseMimeType: 'application/json' },
-});
+}, requestOptions);
 
 /**
  * Builds a personality context prompt for Gemini based on user profile and preferences.
@@ -168,13 +171,6 @@ export async function workspaceChat(messageOrPayload, history = [], userProfile,
   }
 
   const personalityContext = buildPersonalityContext(effectiveProfile, pageContext);
-  const modelNoJson = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
-  const chat = modelNoJson.startChat({
-    history: inputHistory,
-    generationConfig: { maxOutputTokens: 500 },
-  });
-
   const prompt = `
 ${personalityContext}
 
@@ -186,8 +182,21 @@ ${pageContext}
 User message: ${inputMessage}
 `;
 
-  const result = await chat.sendMessage(prompt);
-  return result.response.text();
+  try {
+    const modelNoJson = genAI.getGenerativeModel({ model: PRIMARY_MODEL }, requestOptions);
+    const chat = modelNoJson.startChat({
+      history: inputHistory,
+      generationConfig: { maxOutputTokens: 500 },
+    });
+
+    const result = await chat.sendMessage(prompt);
+    return result.response.text();
+  } catch (primaryError) {
+    console.warn('Primary Gemini model failed, falling back to', FALLBACK_MODEL, primaryError?.message || primaryError);
+    const fallbackModel = genAI.getGenerativeModel({ model: FALLBACK_MODEL }, requestOptions);
+    const fallbackResponse = await fallbackModel.generateContent(prompt);
+    return fallbackResponse.response.text();
+  }
 }
 
 export async function generateRecap({ pageContext, mbtiType }) {

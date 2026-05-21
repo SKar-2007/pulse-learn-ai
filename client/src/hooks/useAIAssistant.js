@@ -27,7 +27,10 @@ export default function useAIAssistant(session, profile, workspaceNotes) {
       return assistantMsg;
     } catch (error) {
       console.error('AI assistant failed', error);
-      const errorMsg = { role: 'assistant', content: "I couldn't connect to the AI right now." };
+      const errorMsg = {
+        role: 'assistant',
+        content: 'AI is currently unavailable. Please continue with the demo flow.',
+      };
       setMessages((prev) => [...prev, errorMsg]);
       return errorMsg;
     } finally {
