@@ -3,12 +3,19 @@ import { requireAuth } from '../middleware/auth.js';
 import { createClient } from '@supabase/supabase-js';
 import { scoreMBTI } from '../services/mbtiService.js';
 import { MBTI_AI_PROFILES } from '../lib/mbtiProfiles.js';
+import { workspaceChat } from '../services/geminiService.js';
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  : null;
 const router = express.Router();
 
 router.post('/profile', requireAuth, async (req, res) => {
     try {
+        if (!supabase) {
+            return res.status(500).json({ error: 'Server misconfigured: SUPABASE_URL is required for this request.' });
+        }
+
         const {
             learning_style,
             expertise_level,
@@ -42,6 +49,10 @@ router.post('/profile', requireAuth, async (req, res) => {
 
 router.get('/profile', requireAuth, async (req, res) => {
     try {
+        if (!supabase) {
+            return res.json({ profile: null });
+        }
+
         const { data, error } = await supabase
             .from('user_profiles')
             .select('*')
@@ -59,6 +70,10 @@ router.get('/profile', requireAuth, async (req, res) => {
 // POST /api/user/mbti — scores the test, saves result, returns profile with type name
 router.post('/mbti', requireAuth, async (req, res) => {
     try {
+        if (!supabase) {
+            return res.status(500).json({ error: 'Server misconfigured: SUPABASE_URL is required for this request.' });
+        }
+
         const { answers } = req.body;
 
         if (!Array.isArray(answers) || answers.length !== 20) {
@@ -96,17 +111,21 @@ router.post('/mbti', requireAuth, async (req, res) => {
     }
 });
 
-import { workspaceChat } from '../services/geminiService.js';
-
 router.post('/chat', requireAuth, async (req, res) => {
     try {
         const { message, history, workspaceNotes } = req.body;
 
-        const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('user_id', req.user.id)
-            .single();
+        if (!supabase && req.user.id !== 'demo-user') {
+            return res.status(500).json({ error: 'Server misconfigured: SUPABASE_URL is required for this request.' });
+        }
+
+        const { data: profile } = req.user.id === 'demo-user'
+            ? { data: null }
+            : await supabase
+                .from('user_profiles')
+                .select('*')
+                .eq('user_id', req.user.id)
+                .single();
 
         const reply = await workspaceChat(message, history || [], profile, workspaceNotes);
         res.json({ reply });

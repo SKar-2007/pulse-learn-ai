@@ -1,15 +1,24 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { MBTI_AI_PROFILES } from '../lib/mbtiProfiles.js';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const genAI = process.env.GOOGLE_API_KEY ? new GoogleGenerativeAI(process.env.GOOGLE_API_KEY) : null;
 const requestOptions = { apiVersion: 'v1' };
-const PRIMARY_MODEL = 'gemini-1.5-flash';
-const FALLBACK_MODEL = 'text-bison@001';
+const PRIMARY_MODEL = process.env.GEMINI_PRIMARY_MODEL || 'gemini-1.5-pro';
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-1.5-flash';
 
-const model = genAI.getGenerativeModel({
-  model: PRIMARY_MODEL,
-  generationConfig: { responseMimeType: 'application/json' },
-}, requestOptions);
+function isDemoMode(profile = {}) {
+  return process.env.DEMO_MODE === 'true'
+    || profile?.id === 'demo-user'
+    || profile?.email === 'demo@pulse.test'
+    || profile?.demo_mode === true;
+}
+
+function getGenModel(modelName, options = {}) {
+  if (!genAI) {
+    throw new Error('Google Gemini API key is not configured.');
+  }
+  return genAI.getGenerativeModel({ model: modelName, ...options }, requestOptions);
+}
 
 /**
  * Builds a personality context prompt for Gemini based on user profile and preferences.
@@ -68,6 +77,7 @@ Course Material:
 ${rawText}
   `;
 
+  const model = getGenModel(PRIMARY_MODEL, { generationConfig: { responseMimeType: 'application/json' } });
   const result = await model.generateContent(prompt);
   const text = result.response.text();
   return JSON.parse(text);
@@ -96,6 +106,7 @@ Concept Title: ${nodeTitle}
 Concept Summary: ${nodeSummary}
   `;
 
+  const model = getGenModel(PRIMARY_MODEL, { generationConfig: { responseMimeType: 'application/json' } });
   const result = await model.generateContent(prompt);
   const text = result.response.text();
   return JSON.parse(text);
@@ -134,6 +145,7 @@ User Answers:
 ${answersText}
   `;
 
+  const model = getGenModel(PRIMARY_MODEL, { generationConfig: { responseMimeType: 'application/json' } });
   const result = await model.generateContent(prompt);
   const text = result.response.text();
   const parsed = JSON.parse(text);
@@ -182,8 +194,16 @@ ${pageContext}
 User message: ${inputMessage}
 `;
 
+  if (isDemoMode(effectiveProfile)) {
+    return 'Demo AI mode: a lightweight response is returned here while demo mode is active. Switch to a full account to access the connected Gemini assistant.';
+  }
+
+  if (!genAI) {
+    return 'AI is unavailable because the Gemini API key is not configured. Please enable GOOGLE_API_KEY to use the assistant.';
+  }
+
   try {
-    const modelNoJson = genAI.getGenerativeModel({ model: PRIMARY_MODEL }, requestOptions);
+    const modelNoJson = getGenModel(PRIMARY_MODEL);
     const chat = modelNoJson.startChat({
       history: inputHistory,
       generationConfig: { maxOutputTokens: 500 },
@@ -193,7 +213,7 @@ User message: ${inputMessage}
     return result.response.text();
   } catch (primaryError) {
     console.warn('Primary Gemini model failed, falling back to', FALLBACK_MODEL, primaryError?.message || primaryError);
-    const fallbackModel = genAI.getGenerativeModel({ model: FALLBACK_MODEL }, requestOptions);
+    const fallbackModel = getGenModel(FALLBACK_MODEL);
     const fallbackResponse = await fallbackModel.generateContent(prompt);
     return fallbackResponse.response.text();
   }
@@ -212,8 +232,11 @@ Page context:
 ${pageContext}
 `;
 
-  const recapModel = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+  if (!genAI) {
+    return { headline: 'Demo recap', completedNodes: [], weakAreas: [], collaboratorActivity: [], nextSteps: [], studyTimeToday: '' };
+  }
+
+  const recapModel = getGenModel(PRIMARY_MODEL, {
     generationConfig: { responseMimeType: 'application/json' },
   });
 

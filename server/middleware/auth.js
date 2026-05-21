@@ -1,9 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  : null;
 
 export async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -16,6 +15,10 @@ export async function requireAuth(req, res, next) {
   if (token === 'demo') {
     req.user = { id: 'demo-user', email: 'demo@pulse.test' };
     return next();
+  }
+
+  if (!supabase) {
+    return res.status(500).json({ error: 'Server misconfigured: SUPABASE_URL is required for authenticated requests.' });
   }
 
   try {
