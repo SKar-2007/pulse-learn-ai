@@ -9,6 +9,7 @@ const DEMO_LAYOUT = [
 ];
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function useWorkspace(roadmapId, session, isShared = false) {
     const [layout, setLayout] = useState([]);
@@ -18,12 +19,14 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
     const [loading, setLoading] = useState(false);
     const demo = DEMO_MODE || session?.access_token === 'demo';
 
+    const getHeaders = useCallback(() => ({ Authorization: `Bearer ${session?.access_token}` }), [session]);
+
     const loadPages = useCallback(async () => {
         if (!roadmapId || demo) return;
         try {
             const { data } = await axios.get(
-                `${import.meta.env.VITE_API_URL}/api/workspace/${roadmapId}/pages`,
-                { headers: { Authorization: `Bearer ${session?.access_token}` } }
+                `${API_URL}/api/workspace/${roadmapId}/pages`,
+                { headers: getHeaders() }
             );
             const loadedPages = data.pages || [];
             setPages(loadedPages);
@@ -37,20 +40,59 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
         } catch (err) {
             console.error('Failed to load workspace pages:', err);
         }
-    }, [roadmapId, session, currentPageId, demo]);
+    }, [roadmapId, currentPageId, demo, getHeaders]);
+
+    const loadPageLayout = useCallback(async (pageId) => {
+        if (!roadmapId || !pageId || demo) return;
+        setLoading(true);
+        try {
+            const { data } = await axios.get(
+                `${API_URL}/api/workspace/${roadmapId}/pages/${pageId}`,
+                { headers: getHeaders() }
+            );
+            const page = data.page;
+            if (page) {
+                setCurrentPage(page);
+                setLayout(page.layout_json || []);
+            }
+        } catch (err) {
+            console.error('Failed to load page layout:', err);
+        } finally {
+            setLoading(false);
+        }
+    }, [roadmapId, demo, getHeaders]);
 
     const createPage = async (title, parentPageId = null) => {
         if (!roadmapId || demo) return null;
         try {
             const { data } = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/workspace/${roadmapId}/pages`,
+                `${API_URL}/api/workspace/${roadmapId}/pages`,
                 { title, parent_page_id: parentPageId },
-                { headers: { Authorization: `Bearer ${session?.access_token}` } }
+                { headers: getHeaders() }
+            );
+            setPages((prev) => [...prev, data.page]);
+            setCurrentPageId(data.page.id);
+            setCurrentPage(data.page);
+            setLayout([]);
+            return data.page;
+        } catch (err) {
+            console.error('Failed to create page:', err);
+            return null;
+        }
+    };
+
+    const duplicatePage = async (pageId, title) => {
+        if (!roadmapId || demo || !pageId) return null;
+        try {
+            const { data } = await axios.post(
+                `${API_URL}/api/workspace/${roadmapId}/pages/${pageId}/duplicate`,
+                { title },
+                { headers: getHeaders() }
             );
             setPages((prev) => [...prev, data.page]);
             return data.page;
         } catch (err) {
-            console.error('Failed to create page:', err);
+            console.error('Failed to duplicate page:', err);
             return null;
         }
     };
@@ -61,17 +103,12 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
     };
 
     const loadLayout = useCallback(async () => {
-        const demo = DEMO_MODE || session?.access_token === 'demo';
-        if (!roadmapId && !demo) return;
+        if (!roadmapId || demo) return;
         setLoading(true);
         try {
-            if (demo) {
-                setLayout(DEMO_LAYOUT);
-                return;
-            }
             const { data } = await axios.get(
-                `${import.meta.env.VITE_API_URL}/api/workspace/${roadmapId}?is_shared=${isShared}`,
-                { headers: { Authorization: `Bearer ${session?.access_token}` } }
+                `${API_URL}/api/workspace/${roadmapId}?is_shared=${isShared}`,
+                { headers: getHeaders() }
             );
             setLayout(data.layout || []);
         } catch (err) {
@@ -79,30 +116,56 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
         } finally {
             setLoading(false);
         }
-    }, [roadmapId, session, isShared]);
+    }, [roadmapId, demo, isShared, getHeaders]);
 
     const saveLayout = async (newLayout) => {
-        const demo = DEMO_MODE || session?.access_token === 'demo';
         if (!roadmapId && !demo) return;
         if (demo) {
             setLayout(newLayout);
             return;
         }
+
         try {
-            await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/workspace/layout`,
-                { roadmap_id: roadmapId, layout_json: newLayout, is_shared: isShared },
-                { headers: { Authorization: `Bearer ${session?.access_token}` } }
-            );
+            if (currentPageId) {
+                await axios.post(
+                    `${API_URL}/api/workspace/${roadmapId}/pages/${currentPageId}/layout`,
+                    { layout_json: newLayout },
+                    { headers: getHeaders() }
+                );
+            } else {
+                await axios.post(
+                    `${API_URL}/api/workspace/layout`,
+                    { roadmap_id: roadmapId, layout_json: newLayout, is_shared: isShared },
+                    { headers: getHeaders() }
+                );
+            }
         } catch (err) {
             console.error('Failed to save workspace:', err);
         }
     };
 
-    // Realtime sync for collaborative layout
     useEffect(() => {
-        const demo = DEMO_MODE || session?.access_token === 'demo';
-        if (!roadmapId || !isShared || demo) return;
+        if (roadmapId && !demo) {
+            loadPages();
+        }
+    }, [roadmapId, demo, loadPages]);
+
+    useEffect(() => {
+        if (demo) {
+            setLayout(DEMO_LAYOUT);
+            return;
+        }
+
+        if (currentPageId) {
+            loadPageLayout(currentPageId);
+        } else {
+            loadLayout();
+        }
+    }, [currentPageId, currentPage, demo, loadLayout, loadPageLayout]);
+
+    useEffect(() => {
+        const demoMode = DEMO_MODE || session?.access_token === 'demo';
+        if (!roadmapId || !isShared || demoMode) return;
         const channel = supabase
             .channel(`workspace-${roadmapId}`)
             .on('postgres_changes', {
@@ -120,10 +183,16 @@ export default function useWorkspace(roadmapId, session, isShared = false) {
         return () => supabase.removeChannel(channel);
     }, [roadmapId, session, isShared]);
 
-    useEffect(() => {
-        loadLayout();
-        loadPages();
-    }, [loadLayout, loadPages]);
-
-    return { layout, setLayout, saveLayout, pages, currentPageId, currentPage, selectPage, createPage, loading };
+    return {
+        layout,
+        setLayout,
+        saveLayout,
+        pages,
+        currentPageId,
+        currentPage,
+        selectPage,
+        createPage,
+        duplicatePage,
+        loading,
+    };
 }

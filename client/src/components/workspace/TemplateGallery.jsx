@@ -32,7 +32,7 @@ const TYPE_LABELS = {
     progress: 'Progress',
 };
 
-export default function TemplateGallery({ isOpen, onClose, onApply }) {
+export default function TemplateGallery({ isOpen, onClose, onApply, savedTemplates = [] }) {
     return (
         <AnimatePresence>
             {isOpen && (
@@ -55,41 +55,83 @@ export default function TemplateGallery({ isOpen, onClose, onApply }) {
                             </div>
                         </div>
 
-                        <div className="p-8 grid grid-cols-1 gap-4 overflow-y-auto max-h-[65vh]">
-                            {TEMPLATES.map((tmpl) => (
-                                <motion.button
-                                    key={tmpl.id}
-                                    whileHover={{ scale: 1.01 }}
-                                    whileTap={{ scale: 0.99 }}
-                                    onClick={() => {
-                                        onApply(tmpl.preview.map((type, index) => ({ i: `${tmpl.id}-${index}`, x: index * 4, y: 0, w: type === 'notes' ? 12 : 6, h: type === 'progress' ? 2 : 4, type, config: {} })));
-                                        onClose();
-                                    }}
-                                    className="group rounded-[2rem] border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-6 text-left shadow-lg shadow-indigo-500/10 transition-all hover:border-indigo-500/70"
-                                >
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-indigo-300 shadow-inner shadow-black/20 transition-all group-hover:bg-indigo-600">
-                                                {tmpl.icon}
+                        <div className="p-8 overflow-y-auto max-h-[70vh] space-y-6">
+                            <div>
+                                <h3 className="text-sm uppercase tracking-[0.35em] text-slate-500 mb-4">Built-in templates</h3>
+                                <div className="grid grid-cols-1 gap-4">
+                                    {TEMPLATES.map((tmpl) => (
+                                        <motion.button
+                                            key={tmpl.id}
+                                            whileHover={{ scale: 1.01 }}
+                                            whileTap={{ scale: 0.99 }}
+                                            onClick={() => {
+                                                onApply(tmpl.preview.map((type, index) => ({ i: `${tmpl.id}-${index}`, x: index * 4, y: 0, w: type === 'notes' ? 12 : 6, h: type === 'progress' ? 2 : 4, type, config: {} })));
+                                                onClose();
+                                            }}
+                                            className="group rounded-[2rem] border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-6 text-left shadow-lg shadow-indigo-500/10 transition-all hover:border-indigo-500/70"
+                                        >
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-14 h-14 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-indigo-300 shadow-inner shadow-black/20 transition-all group-hover:bg-indigo-600">
+                                                        {tmpl.icon}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-xl font-black text-white">{tmpl.name}</h3>
+                                                        <p className="text-sm text-slate-400 mt-1 max-w-xl">{tmpl.desc}</p>
+                                                    </div>
+                                                </div>
+                                                <span className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.35em] text-indigo-300">Apply</span>
                                             </div>
-                                            <div>
-                                                <h3 className="text-xl font-black text-white">{tmpl.name}</h3>
-                                                <p className="text-sm text-slate-400 mt-1 max-w-xl">{tmpl.desc}</p>
-                                            </div>
-                                        </div>
-                                        <span className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.35em] text-indigo-300">Apply</span>
-                                    </div>
 
-                                    <div className="mt-6 grid grid-cols-3 gap-3">
-                                        {tmpl.preview.map((type, index) => (
-                                            <div key={type + index} className="rounded-3xl border border-slate-800 bg-slate-950/90 p-3 text-[11px] text-slate-400 flex flex-col justify-between">
-                                                <span className="font-bold text-slate-100">{TYPE_LABELS[type]}</span>
-                                                <span className="text-[10px] text-slate-500">{type === 'notes' ? 'Large notes area' : type === 'quiz' ? 'Active practice' : type === 'progress' ? 'Progress summary' : 'Structured flow'}</span>
+                                            <div className="mt-6 grid grid-cols-3 gap-3">
+                                                {tmpl.preview.map((type, index) => (
+                                                    <div key={type + index} className="rounded-3xl border border-slate-800 bg-slate-950/90 p-3 text-[11px] text-slate-400 flex flex-col justify-between min-h-[94px] overflow-hidden">
+                                                        <span className="font-bold text-slate-100">{TYPE_LABELS[type]}</span>
+                                                        <span className="text-[10px] text-slate-500">{type === 'notes' ? 'Large notes area' : type === 'quiz' ? 'Active practice' : type === 'progress' ? 'Progress summary' : 'Structured flow'}</span>
+                                                    </div>
+                                                ))}
                                             </div>
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="flex items-center justify-between gap-3 mb-4">
+                                    <div>
+                                        <h3 className="text-sm uppercase tracking-[0.35em] text-slate-500">Saved page templates</h3>
+                                        <p className="text-xs text-slate-500">Reuse your own page layouts across workspaces.</p>
+                                    </div>
+                                </div>
+                                {savedTemplates.length === 0 ? (
+                                    <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6 text-sm text-slate-400">
+                                        No saved templates yet. Save a page from the workspace sidebar to make it reusable here.
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {savedTemplates.map((tmpl) => (
+                                            <motion.button
+                                                key={tmpl.id}
+                                                whileHover={{ scale: 1.01 }}
+                                                whileTap={{ scale: 0.99 }}
+                                                onClick={() => {
+                                                    onApply(tmpl.layout || []);
+                                                    onClose();
+                                                }}
+                                                className="group rounded-[2rem] border border-slate-800 bg-slate-950/90 p-6 text-left shadow-lg shadow-slate-900/10 transition-all hover:border-indigo-500/70"
+                                            >
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div>
+                                                        <h3 className="text-xl font-black text-white">{tmpl.name}</h3>
+                                                        <p className="text-sm text-slate-400 mt-1 max-w-xl">{tmpl.description}</p>
+                                                    </div>
+                                                    <span className="text-[10px] uppercase tracking-[0.35em] text-slate-500">Saved</span>
+                                                </div>
+                                                <div className="mt-4 text-[10px] text-slate-500">From page: {tmpl.originPage}</div>
+                                            </motion.button>
                                         ))}
                                     </div>
-                                </motion.button>
-                            ))}
+                                )}
+                            </div>
                         </div>
                     </motion.div>
                 </>

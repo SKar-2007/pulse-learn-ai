@@ -1,4 +1,4 @@
-export default function PageSidebar({ pages, currentPageId, onPageSelect, onNewPage, onNewSubpage, onRenamePage, onDeletePage, onSaveAsTemplate }) {
+export default function PageSidebar({ pages, currentPageId, onPageSelect, onNewPage, onNewSubpage, onRenamePage, onDeletePage, onSaveAsTemplate, onDuplicatePage }) {
   const renderPage = (page, depth = 0) => (
     <div key={page.id} className="space-y-1">
       <div
@@ -40,7 +40,11 @@ export default function PageSidebar({ pages, currentPageId, onPageSelect, onNewP
         <button onClick={() => onNewPage()} className="text-indigo-400 text-xs">+ New</button>
       </div>
       <div className="space-y-2">{tree.map((page) => renderPage(page))}</div>
-      <button onClick={onNewSubpage} className="mt-auto rounded-2xl border border-slate-800 px-4 py-3 text-sm text-slate-200 hover:border-indigo-500 hover:text-white transition">New subpage</button>
+      <div className="mt-4 space-y-2">
+        <button onClick={onDuplicatePage} className="w-full rounded-2xl border border-slate-800 px-4 py-3 text-sm text-slate-200 hover:border-indigo-500 hover:text-white transition">Duplicate current page</button>
+        <button onClick={onSaveAsTemplate} className="w-full rounded-2xl border border-slate-800 px-4 py-3 text-sm text-slate-200 hover:border-indigo-500 hover:text-white transition">Save page as template</button>
+      </div>
+      <button onClick={onNewSubpage} className="mt-4 rounded-2xl border border-slate-800 px-4 py-3 text-sm text-slate-200 hover:border-indigo-500 hover:text-white transition">New subpage</button>
     </aside>
   );
 }

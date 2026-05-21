@@ -30,6 +30,7 @@ export default function Dashboard({ session, profile }) {
     const [isShared, setIsShared] = useState(false);
     const [showAI, setShowAI] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
+    const [savedTemplates, setSavedTemplates] = useState([]);
 
     const {
         roadmaps,
@@ -62,6 +63,92 @@ export default function Dashboard({ session, profile }) {
             loadRoadmaps(session.access_token);
         }
     }, [session, loadRoadmaps]);
+
+    useEffect(() => {
+        const stored = window.localStorage.getItem('pulse_saved_templates');
+        if (stored) {
+            try {
+                setSavedTemplates(JSON.parse(stored));
+            } catch (err) {
+                console.warn('Invalid saved templates', err);
+            }
+        }
+    }, []);
+
+    const persistSavedTemplates = (templates) => {
+        setSavedTemplates(templates);
+        window.localStorage.setItem('pulse_saved_templates', JSON.stringify(templates));
+    };
+
+    const handleSaveCurrentTemplate = () => {
+        if (!currentPageId) {
+            setToastMessage('Select a page before saving a template.');
+            setTimeout(() => setToastMessage(''), 3000);
+            return;
+        }
+
+        const name = window.prompt('Name this new template', currentPage?.title ? `${currentPage.title} Template` : 'My Workspace Template');
+        if (!name) return;
+
+        const template = {
+            id: `template-${Date.now()}`,
+            name,
+            description: currentPage?.title ? `Saved from ${currentPage.title}` : 'Saved workspace template',
+            layout,
+            originPage: currentPage?.title || 'Current page',
+            createdAt: new Date().toISOString(),
+        };
+
+        persistSavedTemplates([template, ...savedTemplates]);
+        setToastMessage('Template saved locally.');
+        setTimeout(() => setToastMessage(''), 3000);
+    };
+
+    const handleDuplicatePage = async () => {
+        if (!currentPageId || !selectedRoadmap?.id) return;
+        try {
+            const { data } = await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/workspace/${selectedRoadmap.id}/pages/${currentPageId}/duplicate`,
+                { title: `Copy of ${currentPage?.title || 'Page'}` },
+                { headers: { Authorization: `Bearer ${session.access_token}` } }
+            );
+
+            if (data.page) {
+                setToastMessage('Page duplicated successfully.');
+                setTimeout(() => setToastMessage(''), 3000);
+                selectPage(data.page.id);
+            }
+        } catch (err) {
+            console.error('Duplicate page failed:', err);
+            setToastMessage('Page duplication failed.');
+            setTimeout(() => setToastMessage(''), 3000);
+        }
+    };
+
+    const handleSearchNavigate = async (item, type) => {
+        if (!item) return;
+
+        if (type === 'page' || type === 'note') {
+            if (selectedRoadmap?.id !== item.roadmap_id) {
+                await loadRoadmap(item.roadmap_id, session.access_token);
+            }
+
+            if (type === 'page') {
+                selectPage(item.id);
+                setToastMessage(`Navigated to page “${item.title}”.`);
+            } else if (item.page_id) {
+                selectPage(item.page_id);
+                setToastMessage(`Opened note from “${item.page_title}”.`);
+            }
+        } else if (type === 'node') {
+            if (selectedRoadmap?.id !== item.roadmap_id) {
+                await loadRoadmap(item.roadmap_id, session.access_token);
+            }
+            setToastMessage(`Found node “${item.title}”.`);
+        }
+
+        setTimeout(() => setToastMessage(''), 3000);
+    };
 
     const handleNodeUpdate = useCallback((updatedNode) => {
         setNodes(prev =>
@@ -202,7 +289,6 @@ export default function Dashboard({ session, profile }) {
             }
         }
     };
-    };
 
     return (
         <div className="min-h-screen bg-gray-950 text-gray-100 flex relative font-sans">
@@ -335,7 +421,8 @@ export default function Dashboard({ session, profile }) {
                                     onNewSubpage={handleNewSubpage}
                                     onRenamePage={() => null}
                                     onDeletePage={() => null}
-                                    onSaveAsTemplate={() => null}
+                                    onSaveAsTemplate={handleSaveCurrentTemplate}
+                                    onDuplicatePage={handleDuplicatePage}
                                 />
                             )}
                             <WorkspaceCanvas
@@ -382,15 +469,16 @@ export default function Dashboard({ session, profile }) {
                 loading={aiLoading}
             />
 
-            <GlobalSearch session={session} onNavigate={() => null} />
+            <GlobalSearch session={session} onNavigate={handleSearchNavigate} />
 
             <TemplateGallery
                 isOpen={showTemplates}
                 onClose={() => setShowTemplates(false)}
                 onApply={(newLayout) => {
                     setLayout(newLayout);
-                    // Persist would happen via useEffect in useWorkspace
+                    saveLayout(newLayout);
                 }}
+                savedTemplates={savedTemplates}
             />
         </div>
     );
