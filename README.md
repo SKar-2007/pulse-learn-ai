@@ -19,6 +19,17 @@ This repository was scaffolded from the Pulse Learn PRD. It contains a React + V
 4. Run the frontend:
    - `cd client && npm run dev`
 
+## Environment variables
+
+- `server/.env`: backend credentials for Supabase, Stellar, and client origin.
+- `client/.env`: frontend values for `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_API_URL`.
+
+## User flow
+
+1. Open the frontend and sign in or create a Supabase user.
+2. Upload a syllabus PDF or paste syllabus text.
+3. Generate a roadmap, answer quiz prompts, and mint your Stellar receipt.
+
 ## Notes
 
 - Backend routes are located in `server/routes/`
