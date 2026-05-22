@@ -17,6 +17,7 @@ import loopComponentRouter from './routes/loopComponent.js';
 import searchRouter from './routes/search.js';
 import recapRouter from './routes/recap.js';
 import aiAssistantRouter from './routes/aiAssistant.js';
+import stellarRouter from './routes/stellar.js';
 import automationRouter from './routes/automation.js';
 import mcpRouter from './routes/mcp.js';
 
@@ -43,6 +44,7 @@ app.use('/api/loop-component', loopComponentRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/recap', recapRouter);
 app.use('/api/ai-assistant', aiAssistantRouter);
+app.use('/api/stellar', stellarRouter);
 app.use('/api/automation', automationRouter);
 app.use('/api/mcp', mcpRouter);
 

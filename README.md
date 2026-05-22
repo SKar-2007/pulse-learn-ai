@@ -22,6 +22,9 @@ This repository was scaffolded from the Pulse Learn PRD. It contains a React + V
 ## Environment variables
 
 - `server/.env`: backend credentials for Supabase, Stellar, and client origin.
+  - Required Stellar values:
+    - `WALLET_SECRET`: secret key for the Stellar account used to mint receipts.
+    - `STELLAR_HORIZON_URL`: optional Horizon endpoint, defaults to `https://horizon-testnet.stellar.org`.
 - `client/.env`: frontend values for `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_API_URL`.
 
 ## User flow

@@ -25,7 +25,8 @@ export default function App() {
   const [loading, setLoading] = useState(startDemo ? false : true);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = 'dark';
+    const savedTheme = localStorage.getItem('pulse_theme');
+    document.documentElement.dataset.theme = savedTheme || 'dark';
   }, []);
 
   useEffect(() => {
