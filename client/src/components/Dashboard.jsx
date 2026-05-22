@@ -20,6 +20,7 @@ import { useRealtime } from '../hooks/useRealtime';
 import useMCPBridge from '../hooks/useMCPBridge';
 import { apiUrl, authHeaders } from '../lib/apiClient';
 import { supabase } from '../lib/supabaseClient';
+import { AUTOMATION_TRIGGERS, AUTOMATION_ACTIONS } from '../lib/automationTriggers';
 
 const SUGGESTION_TOPICS = [
   'Docker Mastery',
@@ -84,6 +85,12 @@ export default function Dashboard({ session, profile }) {
   const [mcpChannel, setMcpChannel] = useState('#general');
   const [mcpStatus, setMcpStatus] = useState('');
   const [mcpActionLoading, setMcpActionLoading] = useState(false);
+  const [automationTrigger, setAutomationTrigger] = useState('node_completed');
+  const [automationAction, setAutomationAction] = useState('post_slack');
+  const [automationConfig, setAutomationConfig] = useState({ channel: '#general', message_template: 'I completed {{node_title}}.' });
+  const [automationRules, setAutomationRules] = useState([]);
+  const [automationStatus, setAutomationStatus] = useState('');
+  const [automationLoading, setAutomationLoading] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -253,8 +260,98 @@ export default function Dashboard({ session, profile }) {
     }
   };
 
+  const fetchAutomationRules = async () => {
+    if (!selectedRoadmap?.id) return;
+    setAutomationLoading(true);
+    try {
+      const { data } = await axios.get(apiUrl(`/api/automation/${selectedRoadmap.id}`), { headers });
+      setAutomationRules(data.rules || []);
+    } catch (err) {
+      console.error(err);
+      setAutomationStatus('Unable to load automation rules.');
+    } finally {
+      setAutomationLoading(false);
+    }
+  };
+
+  const createAutomationRule = async () => {
+    if (!selectedRoadmap?.id) {
+      setAutomationStatus('Select a roadmap first.');
+      return;
+    }
+    if (!automationAction) {
+      setAutomationStatus('Pick an automation action.');
+      return;
+    }
+
+    setAutomationLoading(true);
+    setAutomationStatus(`Saving automation rule...`);
+
+    try {
+      const config = { ...automationConfig };
+      const { data } = await axios.post(
+        apiUrl(`/api/automation/${selectedRoadmap.id}`),
+        {
+          trigger_type: automationTrigger,
+          action_type: automationAction,
+          action_config: config,
+        },
+        { headers }
+      );
+      setAutomationRules((prev) => [data.rule, ...prev]);
+      setAutomationStatus('Automation rule created.');
+    } catch (err) {
+      console.error(err);
+      setAutomationStatus(err?.response?.data?.error || 'Could not save automation rule.');
+    } finally {
+      setAutomationLoading(false);
+    }
+  };
+
+  const removeAutomationRule = async (ruleId) => {
+    setAutomationLoading(true);
+    try {
+      await axios.delete(apiUrl(`/api/automation/${ruleId}`), { headers });
+      setAutomationRules((prev) => prev.filter((rule) => rule.id !== ruleId));
+      setAutomationStatus('Automation rule removed.');
+    } catch (err) {
+      console.error(err);
+      setAutomationStatus(err?.response?.data?.error || 'Could not remove automation rule.');
+    } finally {
+      setAutomationLoading(false);
+    }
+  };
+
+  const triggerAutomation = async () => {
+    if (!selectedRoadmap?.id) return;
+    setAutomationLoading(true);
+    setAutomationStatus('Triggering automation...');
+    try {
+      const triggerData = {
+        user: profile?.display_name || session?.user?.email || 'User',
+        node_title: selectedRoadmap.title || 'roadmap',
+      };
+      const { data } = await axios.post(
+        apiUrl('/api/automation/trigger'),
+        {
+          roadmap_id: selectedRoadmap.id,
+          trigger_type: automationTrigger,
+          trigger_data: triggerData,
+        },
+        { headers }
+      );
+      setAutomationStatus(`Triggered ${data.triggered || 0} rules.`);
+    } catch (err) {
+      console.error(err);
+      setAutomationStatus(err?.response?.data?.error || 'Trigger request failed.');
+    } finally {
+      setAutomationLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchCollaborators();
+    fetchAutomationRules();
   }, [selectedRoadmap?.id, session?.access_token]);
 
   const onlinePresence = useMemo(() => {
@@ -1034,6 +1131,111 @@ export default function Dashboard({ session, profile }) {
                           Connect {mcpService}
                         </button>
                         {mcpStatus && <p className="text-sm text-[var(--text-secondary)]">{mcpStatus}</p>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="block">
+                <div className="block-header">
+                  <div>
+                    <p className="block-title">Automation rules</p>
+                    <h2 className="text-xl font-semibold text-[var(--text-primary)]">Trigger actions from roadmap events</h2>
+                  </div>
+                  <button type="button" className="btn-ghost text-xs uppercase tracking-[0.35em]" onClick={() => setAutomationStatus('')}>
+                    Clear status
+                  </button>
+                </div>
+                <div className="block-body">
+                  <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+                    <div className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                      <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Existing rules</p>
+                      {automationRules.length ? (
+                        <div className="space-y-3 mt-4">
+                          {automationRules.map((rule) => (
+                            <div key={rule.id} className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-primary)] p-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-semibold text-[var(--text-primary)]">{AUTOMATION_TRIGGERS[rule.trigger_type]?.label || rule.trigger_type}</p>
+                                  <p className="text-sm text-[var(--text-secondary)]">then {AUTOMATION_ACTIONS[rule.action_type]?.label || rule.action_type}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn-ghost text-xs"
+                                  onClick={() => removeAutomationRule(rule.id)}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                              {rule.action_config && (
+                                <pre className="mt-3 overflow-x-auto rounded-[14px] border border-[var(--border)] bg-[var(--bg-secondary)] p-3 text-xs text-[var(--text-secondary)]">
+                                  {JSON.stringify(rule.action_config, null, 2)}
+                                </pre>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-4 text-sm text-[var(--text-secondary)]">No automation rules yet. Create one to act when a node completes, a roadmap finishes, or a collaborator joins.</p>
+                      )}
+                    </div>
+
+                    <div className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                      <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">New automation rule</p>
+                      <div className="mt-4 grid gap-3">
+                        <label className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Trigger</label>
+                        <select value={automationTrigger} onChange={(event) => setAutomationTrigger(event.target.value)} className="input-minimal">
+                          {Object.entries(AUTOMATION_TRIGGERS).map(([key, trigger]) => (
+                            <option key={key} value={key}>{trigger.label}</option>
+                          ))}
+                        </select>
+
+                        <label className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Action</label>
+                        <select value={automationAction} onChange={(event) => {
+                          const nextAction = event.target.value;
+                          setAutomationAction(nextAction);
+                          const defaults = AUTOMATION_ACTIONS[nextAction]?.configFields?.reduce((acc, field) => {
+                            acc[field.name] = field.default ?? '';
+                            return acc;
+                          }, {});
+                          setAutomationConfig(defaults);
+                        }} className="input-minimal">
+                          {Object.entries(AUTOMATION_ACTIONS).map(([key, action]) => (
+                            <option key={key} value={key}>{action.label}</option>
+                          ))}
+                        </select>
+
+                        {AUTOMATION_ACTIONS[automationAction]?.configFields?.map((field) => (
+                          <div key={field.name} className="grid gap-2">
+                            <label className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">{field.label}</label>
+                            {field.type === 'textarea' ? (
+                              <textarea
+                                rows={3}
+                                className="input-minimal resize-none"
+                                value={automationConfig[field.name] ?? ''}
+                                onChange={(event) => setAutomationConfig((prev) => ({ ...prev, [field.name]: event.target.value }))}
+                                placeholder={field.placeholder || ''}
+                              />
+                            ) : (
+                              <input
+                                type={field.type}
+                                className="input-minimal"
+                                value={automationConfig[field.name] ?? ''}
+                                onChange={(event) => setAutomationConfig((prev) => ({ ...prev, [field.name]: event.target.value }))}
+                                placeholder={field.placeholder || ''}
+                              />
+                            )}
+                          </div>
+                        ))}
+
+                        <button type="button" className="btn-primary" onClick={createAutomationRule} disabled={automationLoading}>
+                          Save rule
+                        </button>
+                        <button type="button" className="btn-secondary" onClick={triggerAutomation} disabled={automationLoading || !automationRules.length}>
+                          Trigger sample event
+                        </button>
+                        {automationStatus && <p className="text-sm text-[var(--text-secondary)]">{automationStatus}</p>}
                       </div>
                     </div>
                   </div>
