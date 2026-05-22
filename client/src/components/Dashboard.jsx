@@ -17,7 +17,9 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { useRealtime } from '../hooks/useRealtime';
+import useMCPBridge from '../hooks/useMCPBridge';
 import { apiUrl, authHeaders } from '../lib/apiClient';
+import { supabase } from '../lib/supabaseClient';
 
 const SUGGESTION_TOPICS = [
   'Docker Mastery',
@@ -76,8 +78,16 @@ export default function Dashboard({ session, profile }) {
   const [commentDrafts, setCommentDrafts] = useState({});
   const [nodeComments, setNodeComments] = useState({});
   const [searchOverlayQuery, setSearchOverlayQuery] = useState('');
+  const [mcpService, setMcpService] = useState('slack');
+  const [mcpToken, setMcpToken] = useState('');
+  const [mcpRepo, setMcpRepo] = useState('');
+  const [mcpChannel, setMcpChannel] = useState('#general');
+  const [mcpStatus, setMcpStatus] = useState('');
+  const [mcpActionLoading, setMcpActionLoading] = useState(false);
 
   const fileInputRef = useRef(null);
+
+  const { connections: mcpConnections, loading: mcpLoading, saveConnection, removeConnection } = useMCPBridge(selectedRoadmapId, session);
 
   const selectedRoadmap = useMemo(
     () => roadmaps.find((roadmap) => roadmap.id === selectedRoadmapId) || roadmaps[0] || null,
@@ -166,6 +176,80 @@ export default function Dashboard({ session, profile }) {
       setCollaborators(data.collaborators || []);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const addMcpConnection = async () => {
+    if (!selectedRoadmap?.id) {
+      setMcpStatus('Select a roadmap first.');
+      return;
+    }
+    if (!mcpToken.trim()) {
+      setMcpStatus('Enter the plugin access token.');
+      return;
+    }
+
+    setMcpActionLoading(true);
+    setMcpStatus(`Connecting ${mcpService}...`);
+
+    try {
+      const connectionConfig = mcpService === 'slack'
+        ? { bot_token: mcpToken.trim() }
+        : { access_token: mcpToken.trim() };
+
+      await saveConnection(mcpService, connectionConfig);
+      setMcpStatus(`${mcpService} connected.`);
+      setMcpToken('');
+    } catch (err) {
+      console.error(err);
+      setMcpStatus(err?.response?.data?.error || err.message || 'Connection failed.');
+    } finally {
+      setMcpActionLoading(false);
+    }
+  };
+
+  const testMcpPlugin = async (connection) => {
+    if (!selectedRoadmap?.id) return;
+    setMcpActionLoading(true);
+    setMcpStatus(`Testing ${connection.service}...`);
+
+    if (connection.service === 'github' && !mcpRepo.trim()) {
+      setMcpStatus('Enter a GitHub repo in owner/repo format.');
+      setMcpActionLoading(false);
+      return;
+    }
+
+    try {
+      const payload = connection.service === 'slack'
+        ? {
+            channel: mcpChannel || '#general',
+            message_template: `Pulse-Learn test message for roadmap ${selectedRoadmap.title}`,
+          }
+        : connection.service === 'github'
+          ? {
+              repo: mcpRepo.trim(),
+              title_template: `Pulse-Learn test issue: ${selectedRoadmap.title}`,
+              message_template: 'This is a test issue created from Pulse-Learn.',
+            }
+          : {};
+
+      const actionType = connection.service === 'slack' ? 'post_slack' : 'create_github_issue';
+      const { data } = await axios.post(
+        apiUrl(`/api/mcp/${selectedRoadmap.id}/action`),
+        {
+          service: connection.service,
+          action_type: actionType,
+          payload,
+        },
+        { headers }
+      );
+
+      setMcpStatus(`Plugin test result: ${JSON.stringify(data.result || data)}`);
+    } catch (err) {
+      console.error(err);
+      setMcpStatus(err?.response?.data?.error || err.message || 'Plugin test failed.');
+    } finally {
+      setMcpActionLoading(false);
     }
   };
 
@@ -852,6 +936,104 @@ export default function Dashboard({ session, profile }) {
                           {verifying ? 'Verifying…' : 'Verify on Stellar'}
                         </button>
                         {verificationStatus && <p className="mt-3 text-xs text-[var(--text-secondary)]">{verificationStatus}</p>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {selectedRoadmap && (
+              <section className="block">
+                <div className="block-header">
+                  <div>
+                    <p className="block-title">Plugin integrations</p>
+                    <h2 className="text-xl font-semibold text-[var(--text-primary)]">MCP plugin connections</h2>
+                  </div>
+                  <button type="button" className="btn-ghost text-xs uppercase tracking-[0.35em]" onClick={() => setMcpStatus('')}>
+                    Clear status
+                  </button>
+                </div>
+                <div className="block-body">
+                  <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+                    <div className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                      <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Connected plugins</p>
+                      {mcpConnections.length ? (
+                        <div className="space-y-3 mt-4">
+                          {mcpConnections.map((connection) => (
+                            <div key={connection.id} className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-primary)] p-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-semibold text-[var(--text-primary)]">{connection.service}</p>
+                                  <p className="text-sm text-[var(--text-secondary)]">Connected to this roadmap.</p>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn-secondary text-xs"
+                                    onClick={() => testMcpPlugin(connection)}
+                                    disabled={mcpActionLoading}
+                                  >
+                                    Test
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn-ghost text-xs"
+                                    onClick={() => removeConnection(connection.id)}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                              {connection.connection_config && (
+                                <pre className="mt-3 overflow-x-auto rounded-[14px] border border-[var(--border)] bg-[var(--bg-primary)] p-3 text-xs text-[var(--text-secondary)]">
+                                  {JSON.stringify(connection.connection_config, null, 2)}
+                                </pre>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-4 text-sm text-[var(--text-secondary)]">No MCP plugins connected yet. Connect Slack or GitHub to enable automation actions.</p>
+                      )}
+                    </div>
+
+                    <div className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                      <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Connect plugin</p>
+                      <div className="mt-4 grid gap-3">
+                        <select value={mcpService} onChange={(event) => setMcpService(event.target.value)} className="input-minimal">
+                          <option value="slack">Slack</option>
+                          <option value="github">GitHub</option>
+                        </select>
+                        <input
+                          type="text"
+                          className="input-minimal"
+                          value={mcpToken}
+                          onChange={(event) => setMcpToken(event.target.value)}
+                          placeholder="Access token"
+                        />
+                        {mcpService === 'slack' && (
+                          <input
+                            type="text"
+                            className="input-minimal"
+                            value={mcpChannel}
+                            onChange={(event) => setMcpChannel(event.target.value)}
+                            placeholder="Default Slack channel (#general)"
+                          />
+                        )}
+                        {mcpService === 'github' && (
+                          <input
+                            type="text"
+                            className="input-minimal"
+                            value={mcpRepo}
+                            onChange={(event) => setMcpRepo(event.target.value)}
+                            placeholder="GitHub repo (owner/repo)"
+                          />
+                        )}
+                        <button type="button" className="btn-primary" onClick={addMcpConnection} disabled={mcpActionLoading}>
+                          Connect {mcpService}
+                        </button>
+                        {mcpStatus && <p className="text-sm text-[var(--text-secondary)]">{mcpStatus}</p>}
                       </div>
                     </div>
                   </div>
