@@ -5,6 +5,10 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import requestLogger from './middleware/requestLogger.js';
+
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn('[PulseLearn][WARN] Missing Supabase server env. Ensure server/.env contains SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');
+}
 import errorHandler from './middleware/errorHandler.js';
 
 import userRouter from './routes/user.js';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../../lib/supabaseClient';
+import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient';
 import { Sparkles } from 'lucide-react';
 
 export default function LoginForm() {
@@ -92,6 +92,11 @@ export default function LoginForm() {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {!isSupabaseConfigured && (
+                          <div className="rounded-2xl border border-amber-400/40 bg-amber-500/10 p-3 text-xs text-amber-100">
+                            Supabase is not configured. Copy `client/.env.example` to `client/.env`, fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, then restart the frontend.
+                          </div>
+                        )}
                         <div className="space-y-2">
                             <label className="text-xs uppercase tracking-[0.25em] text-white/70">Email</label>
                             <input

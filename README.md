@@ -34,7 +34,7 @@ This repository was scaffolded from the Pulse Learn PRD. It contains a React + V
   - Required values:
     - `VITE_SUPABASE_URL`: your Supabase project URL.
     - `VITE_SUPABASE_ANON_KEY`: Supabase anonymous public key.
-    - `VITE_API_URL`: backend API base URL, typically `http://localhost:3001/api`.
+    - `VITE_API_URL`: backend API base URL, typically `http://localhost:3001`.
 
 ## User flow
 
