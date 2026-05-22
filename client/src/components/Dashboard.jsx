@@ -18,6 +18,7 @@ import {
 import axios from 'axios';
 import { useRealtime } from '../hooks/useRealtime';
 import useMCPBridge from '../hooks/useMCPBridge';
+import useWorkspace from '../hooks/useWorkspace';
 import { apiUrl, authHeaders } from '../lib/apiClient';
 import { supabase } from '../lib/supabaseClient';
 import { AUTOMATION_TRIGGERS, AUTOMATION_ACTIONS } from '../lib/automationTriggers';
@@ -74,6 +75,7 @@ export default function Dashboard({ session, profile }) {
   const [collabPanelOpen, setCollabPanelOpen] = useState(false);
   const [connectionsOpen, setConnectionsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [pageSidebarOpen, setPageSidebarOpen] = useState(true);
   const [workspaceTitle, setWorkspaceTitle] = useState('');
   const [workspaceTimeBudget, setWorkspaceTimeBudget] = useState('');
   const [workspaceTargetDate, setWorkspaceTargetDate] = useState('');
@@ -102,6 +104,17 @@ export default function Dashboard({ session, profile }) {
   const fileInputRef = useRef(null);
 
   const { connections: mcpConnections, loading: mcpLoading, saveConnection, removeConnection } = useMCPBridge(selectedRoadmapId, session);
+  const {
+    pages,
+    currentPageId,
+    currentPage,
+    selectPage,
+    createPage,
+    duplicatePage,
+    renamePage,
+    deletePage,
+    loading: workspaceLoading,
+  } = useWorkspace(selectedRoadmapId, session);
 
   const selectedRoadmap = useMemo(
     () => roadmaps.find((roadmap) => roadmap.id === selectedRoadmapId) || roadmaps[0] || null,
@@ -177,6 +190,10 @@ export default function Dashboard({ session, profile }) {
       if (event.key === '[') {
         event.preventDefault();
         setSidebarOpen((prev) => !prev);
+      }
+      if (event.key === ']') {
+        event.preventDefault();
+        setPageSidebarOpen((prev) => !prev);
       }
       if (event.key === 'Escape') {
         setCommandOpen(false);
@@ -395,6 +412,42 @@ export default function Dashboard({ session, profile }) {
     () => activeCursors.filter((entry) => entry.user_id !== userId),
     [activeCursors, userId]
   );
+
+  const pageMap = useMemo(() => Object.fromEntries(pages.map((page) => [page.id, page])), [pages]);
+  const pageBreadcrumb = useMemo(() => {
+    const chain = [];
+    let current = currentPage;
+    while (current) {
+      chain.unshift(current);
+      current = pageMap[current.parent_page_id];
+    }
+    return chain;
+  }, [currentPage, pageMap]);
+
+  const pageTree = useMemo(() => {
+    const nodes = pages.map((page) => ({ ...page, children: [] }));
+    const nodeMap = Object.fromEntries(nodes.map((page) => [page.id, page]));
+    const roots = [];
+
+    nodes.forEach((page) => {
+      if (page.parent_page_id && nodeMap[page.parent_page_id]) {
+        nodeMap[page.parent_page_id].children.push(page);
+      } else {
+        roots.push(page);
+      }
+    });
+
+    const ordered = [];
+    const walk = (page, depth = 0) => {
+      ordered.push({ ...page, depth });
+      page.children.sort((a, b) => (a.sequence_order || 0) - (b.sequence_order || 0));
+      page.children.forEach((child) => walk(child, depth + 1));
+    };
+
+    roots.sort((a, b) => (a.sequence_order || 0) - (b.sequence_order || 0));
+    roots.forEach((root) => walk(root, 0));
+    return ordered;
+  }, [pages]);
 
   const fetchRoadmaps = async () => {
     setLoading(true);
@@ -623,6 +676,15 @@ export default function Dashboard({ session, profile }) {
     setAssistantOpen(false);
     setCollabPanelOpen(false);
     setConnectionsOpen(false);
+    setPageSidebarOpen(false);
+  };
+
+  const togglePageSidebar = () => {
+    setPageSidebarOpen((open) => !open);
+    setAssistantOpen(false);
+    setCollabPanelOpen(false);
+    setConnectionsOpen(false);
+    setSettingsOpen(false);
   };
 
   const toggleTheme = () => {
@@ -781,6 +843,9 @@ export default function Dashboard({ session, profile }) {
                     <button type="button" onClick={() => setAssistantOpen(true)} className="btn-secondary w-full">
                       AI assistant
                     </button>
+                    <button type="button" onClick={toggleSettings} className="btn-secondary w-full">
+                      Workspace settings
+                    </button>
                     <button type="button" onClick={fetchRoadmaps} className="btn-secondary w-full">
                       Refresh roadmaps
                     </button>
@@ -822,27 +887,95 @@ export default function Dashboard({ session, profile }) {
         </aside>
 
         <main className="flex-1 overflow-auto p-8 relative" onPointerMove={handleWorkspacePointer}>
-          <div className="pointer-overlay">
-            {collaboratorCursors.map((cursor) => (
-              <div
-                key={cursor.user_id}
-                className="realtime-cursor"
-                style={{ left: `${cursor.cursor.x}px`, top: `${cursor.cursor.y}px` }}
-                title={`${cursor.name} · ${cursor.role}`}
-              >
-                <span>{cursor.initials}</span>
+          <div className="flex gap-6">
+            {pageSidebarOpen && (
+              <aside className="page-sidebar hidden xl:flex xl:flex-col">
+                <div className="flex items-center justify-between gap-3 mb-6">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.35em] text-[var(--text-faint)]">Pages</p>
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">Workspace pages</h2>
+                  </div>
+                  <button type="button" className="btn-ghost" onClick={togglePageSidebar}>
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="page-sidebar-body space-y-4 overflow-auto">
+                  <div className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-primary)] p-4">
+                    <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Current page</p>
+                    <p className="mt-3 text-sm text-[var(--text-secondary)]">{currentPage?.title || 'No page selected'}</p>
+                    <button type="button" className="btn-secondary mt-4 w-full" onClick={createNewPage}>
+                      New page
+                    </button>
+                  </div>
+                  <div className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                    <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Page tree</p>
+                    <div className="mt-4 space-y-2">
+                      {pageTree.length ? (
+                        pageTree.map((page) => (
+                          <button
+                            key={page.id}
+                            type="button"
+                            onClick={() => selectPage(page.id)}
+                            className={`page-tree-item w-full text-left ${currentPageId === page.id ? 'page-tree-item-active' : ''}`}
+                            style={{ paddingLeft: `${16 + page.depth * 14}px` }}
+                          >
+                            <span className="page-tree-item-icon">{page.icon || '📄'}</span>
+                            <span className="page-tree-item-title">{page.title}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="text-sm text-[var(--text-secondary)]">Create a page to begin organizing the workspace into sections.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            )}
+            <div className="flex-1">
+              <div className="pointer-overlay">
+                {collaboratorCursors.map((cursor) => (
+                  <div
+                    key={cursor.user_id}
+                    className="collab-cursor"
+                    style={{ left: `${cursor.cursor.x}px`, top: `${cursor.cursor.y}px` }}
+                    title={`${cursor.name} · ${cursor.role}`}
+                  >
+                    <div className="collab-cursor-line" />
+                    <div className="collab-cursor-label">{cursor.name}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="mx-auto max-w-[1480px] space-y-8">
+              <div className="mx-auto max-w-[1480px] space-y-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Pulse-Learn canvas</p>
                 <h1 className="text-4xl font-black tracking-tight">Minimal learning workspace</h1>
+                {pageBreadcrumb.length > 0 && (
+                  <div className="breadcrumb mt-2">
+                    {pageBreadcrumb.map((page, index) => (
+                      <span key={page.id} className={`breadcrumb-item ${index === pageBreadcrumb.length - 1 ? 'current' : ''}`} onClick={() => index < pageBreadcrumb.length - 1 && selectPage(page.id)}>
+                        {page.title}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-3">
+                <button type="button" onClick={toggleCollaborators} className="presence-stack btn-ghost" title="View collaborators">
+                  {(onlinePresence.length ? onlinePresence.slice(0, 3) : collaborators.slice(0, 3)).map((user) => (
+                    <div key={user.initials} className="presence-avatar" title={user.name}>
+                      {user.initials}
+                    </div>
+                  ))}
+                  <div className="presence-avatar" title={`${(onlinePresence.length ? onlinePresence.length : collaborators.length)} collaborators`}>
+                    {(onlinePresence.length ? onlinePresence.length : collaborators.length) > 3 ? `+${(onlinePresence.length ? onlinePresence.length : collaborators.length) - 3}` : '+'}
+                  </div>
+                </button>
                 <button type="button" className="btn-ghost" onClick={() => setSearchOverlayOpen(true)}>
                   <Search size={16} /> Search
+                </button>
+                <button type="button" className="btn-ghost" onClick={togglePageSidebar}>
+                  <FileText size={16} /> Pages
                 </button>
                 <button type="button" className="btn-ghost" onClick={() => setAssistantOpen(true)}>
                   AI
@@ -941,14 +1074,6 @@ export default function Dashboard({ session, profile }) {
                         <p className="block-title">Roadmap workspace</p>
                         <h2 className="text-xl font-semibold text-[var(--text-primary)]">{selectedRoadmap.title}</h2>
                       </div>
-                      <button type="button" onClick={toggleCollaborators} className="presence-stack" title="View collaborators">
-                        {(onlinePresence.length ? onlinePresence.slice(0, 3) : collaborators.slice(0, 3)).map((user) => (
-                          <div key={user.initials} className="presence-avatar" title={user.name}>
-                            {user.initials}
-                          </div>
-                        ))}
-                        <div className="presence-avatar">{(onlinePresence.length ? onlinePresence.length : collaborators.length) > 3 ? `+${(onlinePresence.length ? onlinePresence.length : collaborators.length) - 3}` : '+'}</div>
-                      </button>
                     </div>
                     <div className="block-body">
                       <div className="grid gap-4 md:grid-cols-[1fr_auto]">
@@ -1106,8 +1231,9 @@ export default function Dashboard({ session, profile }) {
             )}
 
             {selectedRoadmap && (
-              <section className="block">
-                <div className="block-header">
+              <>
+                <section className="block">
+                  <div className="block-header">
                   <div>
                     <p className="block-title">Plugin integrations</p>
                     <h2 className="text-xl font-semibold text-[var(--text-primary)]">MCP plugin connections</h2>
@@ -1306,6 +1432,7 @@ export default function Dashboard({ session, profile }) {
                   </div>
                 </div>
               </section>
+              </>
             )}
 
             <section className="block">
@@ -1323,6 +1450,8 @@ export default function Dashboard({ session, profile }) {
               </div>
             </section>
           </div>
+        </div>
+      </div>
         </main>
 
         {assistantOpen && (
