@@ -10,22 +10,31 @@ This repository was scaffolded from the Pulse Learn PRD. It contains a React + V
 
 ## Setup
 
-1. Copy environment variables into `server/.env` and `client/.env`.
-2. Install dependencies:
+1. Copy environment variables from `server/.env.example` to `server/.env` and from `client/.env.example` to `client/.env`.
+2. Fill in your Supabase project values and any backend secrets.
+3. Install dependencies:
    - `cd server && npm install`
    - `cd ../client && npm install`
-3. Run the backend:
+4. Run the backend:
    - `cd server && npm run dev`
-4. Run the frontend:
+5. Run the frontend:
    - `cd client && npm run dev`
 
 ## Environment variables
 
 - `server/.env`: backend credentials for Supabase, Stellar, and client origin.
-  - Required Stellar values:
+  - Required values:
+    - `SUPABASE_URL`: your Supabase project URL.
+    - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service-role key for backend access.
+    - `CLIENT_URL`: frontend origin for CORS, typically `http://localhost:5173`.
+    - `PORT`: backend port, typically `3001`.
     - `WALLET_SECRET`: secret key for the Stellar account used to mint receipts.
     - `STELLAR_HORIZON_URL`: optional Horizon endpoint, defaults to `https://horizon-testnet.stellar.org`.
 - `client/.env`: frontend values for `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_API_URL`.
+  - Required values:
+    - `VITE_SUPABASE_URL`: your Supabase project URL.
+    - `VITE_SUPABASE_ANON_KEY`: Supabase anonymous public key.
+    - `VITE_API_URL`: backend API base URL, typically `http://localhost:3001/api`.
 
 ## User flow
 
