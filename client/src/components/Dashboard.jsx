@@ -195,6 +195,10 @@ export default function Dashboard({ session, profile }) {
   }, [presence, collaborators]);
 
   const activeCursors = useMemo(() => onlinePresence.filter((item) => item.cursor), [onlinePresence]);
+  const collaboratorCursors = useMemo(
+    () => activeCursors.filter((entry) => entry.user_id !== userId),
+    [activeCursors, userId]
+  );
 
   const fetchRoadmaps = async () => {
     setLoading(true);
@@ -574,7 +578,19 @@ export default function Dashboard({ session, profile }) {
           </div>
         </aside>
 
-        <main className="flex-1 overflow-auto p-8" onPointerMove={handleWorkspacePointer}>
+        <main className="flex-1 overflow-auto p-8 relative" onPointerMove={handleWorkspacePointer}>
+          <div className="pointer-overlay">
+            {collaboratorCursors.map((cursor) => (
+              <div
+                key={cursor.user_id}
+                className="realtime-cursor"
+                style={{ left: `${cursor.cursor.x}px`, top: `${cursor.cursor.y}px` }}
+                title={`${cursor.name} · ${cursor.role}`}
+              >
+                <span>{cursor.initials}</span>
+              </div>
+            ))}
+          </div>
           <div className="mx-auto max-w-[1480px] space-y-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
@@ -936,8 +952,8 @@ export default function Dashboard({ session, profile }) {
               )}
             </div>
             <div className="mt-4 rounded-[20px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4 text-sm text-[var(--text-secondary)]">
-              {activeCursors.length > 0 ? (
-                <p>{activeCursors.length} collaborator cursor{activeCursors.length > 1 ? 's' : ''} live in the workspace.</p>
+              {collaboratorCursors.length > 0 ? (
+                <p>{collaboratorCursors.length} collaborator cursor{collaboratorCursors.length > 1 ? 's' : ''} live in the workspace.</p>
               ) : (
                 <p>Move your cursor to share live activity with teammates.</p>
               )}

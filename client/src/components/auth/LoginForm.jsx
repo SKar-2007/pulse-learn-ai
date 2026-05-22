@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabaseClient';
 import { Sparkles } from 'lucide-react';
 
-const enableGoogleAuth = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === 'true';
-
 export default function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -155,19 +153,13 @@ export default function LoginForm() {
                             <span className="h-px flex-1 bg-white/10" />
                         </div>
 
-                        {enableGoogleAuth ? (
-                            <button
-                                type="button"
-                                onClick={handleGoogle}
-                                className="w-full btn-minimal"
-                            >
-                                Continue with Google
-                            </button>
-                        ) : (
-                            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-                                Google signup is disabled. Enable `VITE_ENABLE_GOOGLE_AUTH=true` and enable Google OAuth in your Supabase Auth provider settings.
-                            </div>
-                        )}
+                        <button
+                            type="button"
+                            onClick={handleGoogle}
+                            className="w-full btn-minimal"
+                        >
+                            Continue with Google
+                        </button>
 
                         <button
                             type="button"
