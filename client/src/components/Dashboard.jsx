@@ -72,6 +72,13 @@ export default function Dashboard({ session, profile }) {
   const [commandOpen, setCommandOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [collabPanelOpen, setCollabPanelOpen] = useState(false);
+  const [connectionsOpen, setConnectionsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [workspaceTitle, setWorkspaceTitle] = useState('');
+  const [workspaceTimeBudget, setWorkspaceTimeBudget] = useState('');
+  const [workspaceTargetDate, setWorkspaceTargetDate] = useState('');
+  const [settingsStatus, setSettingsStatus] = useState('');
+  const [settingsLoading, setSettingsLoading] = useState(false);
   const [currentInviteEmail, setCurrentInviteEmail] = useState('');
   const [currentInviteRole, setCurrentInviteRole] = useState(ROLE_OPTIONS[1]);
   const [openCommentNodeId, setOpenCommentNodeId] = useState(null);
@@ -149,6 +156,14 @@ export default function Dashboard({ session, profile }) {
       setSelectedRoadmapId(roadmaps[0].id);
     }
   }, [roadmaps, selectedRoadmapId]);
+
+  useEffect(() => {
+    if (selectedRoadmap) {
+      setWorkspaceTitle(selectedRoadmap.title || '');
+      setWorkspaceTimeBudget(String(selectedRoadmap.time_budget_hours || ''));
+      setWorkspaceTargetDate(selectedRoadmap.target_date ? selectedRoadmap.target_date.split('T')[0] : '');
+    }
+  }, [selectedRoadmap?.id]);
 
   useEffect(() => {
     fetchRoadmaps();
@@ -593,12 +608,59 @@ export default function Dashboard({ session, profile }) {
   const toggleCollaborators = () => {
     setCollabPanelOpen((open) => !open);
     setAssistantOpen(false);
+    setConnectionsOpen(false);
+  };
+
+  const toggleConnections = () => {
+    setConnectionsOpen((open) => !open);
+    setAssistantOpen(false);
+    setCollabPanelOpen(false);
+    setSettingsOpen(false);
+  };
+
+  const toggleSettings = () => {
+    setSettingsOpen((open) => !open);
+    setAssistantOpen(false);
+    setCollabPanelOpen(false);
+    setConnectionsOpen(false);
   };
 
   const toggleTheme = () => {
     const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = nextTheme;
     localStorage.setItem('pulse_theme', nextTheme);
+  };
+
+  const saveWorkspaceSettings = async () => {
+    if (!selectedRoadmap?.id) {
+      setSettingsStatus('Select a roadmap first.');
+      return;
+    }
+    if (!workspaceTitle.trim()) {
+      setSettingsStatus('Workspace title is required.');
+      return;
+    }
+
+    setSettingsLoading(true);
+    setSettingsStatus('Saving workspace settings...');
+
+    try {
+      const payload = {
+        title: workspaceTitle.trim(),
+        timeBudgetHours: Number(workspaceTimeBudget) || null,
+        targetDate: workspaceTargetDate || null,
+      };
+
+      const { data } = await axios.patch(apiUrl(`/api/roadmap/${selectedRoadmap.id}`), payload, { headers });
+      setSettingsStatus('Workspace settings saved.');
+      setRoadmaps((prev) => prev.map((roadmap) => (roadmap.id === data.roadmap.id ? { ...roadmap, ...data.roadmap } : roadmap)));
+      setSelectedRoadmapId(data.roadmap.id);
+    } catch (err) {
+      console.error(err);
+      setSettingsStatus(err?.response?.data?.error || 'Unable to save workspace settings.');
+    } finally {
+      setSettingsLoading(false);
+    }
   };
 
   const sendCollaboratorInvite = async () => {
@@ -785,11 +847,14 @@ export default function Dashboard({ session, profile }) {
                 <button type="button" className="btn-ghost" onClick={() => setAssistantOpen(true)}>
                   AI
                 </button>
+                <button type="button" className="btn-ghost" onClick={toggleSettings}>
+                  <Lock size={16} /> Settings
+                </button>
                 <button type="button" className="btn-ghost" onClick={() => setStatus('Workspace synced.')}>Recap</button>
                 <button type="button" className="btn-ghost">
                   <Share2 size={16} /> Share
                 </button>
-                <button type="button" className="btn-ghost">
+                <button type="button" className="btn-ghost" onClick={toggleConnections}>
                   <MoreHorizontal size={16} />
                 </button>
               </div>
@@ -1363,6 +1428,153 @@ export default function Dashboard({ session, profile }) {
               <button type="button" className="btn-primary mt-4 w-full" onClick={sendCollaboratorInvite}>
                 Send invite
               </button>
+            </div>
+          </aside>
+        )}
+
+        {connectionsOpen && (
+          <aside className="w-[360px] border-l border-[var(--border)] bg-[var(--bg-secondary)] p-6">
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Connections</p>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Workspace plugins</h2>
+              </div>
+              <button type="button" className="btn-ghost" onClick={() => setConnectionsOpen(false)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-4 overflow-auto pr-1">
+              <div className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-primary)] p-4">
+                <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Connected services</p>
+                {mcpConnections.length ? (
+                  <div className="space-y-3 mt-4">
+                    {mcpConnections.map((connection) => (
+                      <div key={connection.id} className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-[var(--text-primary)]">{connection.service}</p>
+                            <p className="text-sm text-[var(--text-secondary)]">Connected to {selectedRoadmap?.title || 'current workspace'}.</p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              className="btn-secondary text-xs"
+                              onClick={() => testMcpPlugin(connection)}
+                              disabled={mcpActionLoading}
+                            >
+                              Test
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-ghost text-xs"
+                              onClick={() => removeConnection(connection.id)}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-[var(--text-secondary)]">No connected services yet. Add Slack or GitHub to automate tasks from this roadmap.</p>
+                )}
+              </div>
+
+              <div className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Add a new connection</p>
+                <div className="mt-4 grid gap-3">
+                  <select value={mcpService} onChange={(event) => setMcpService(event.target.value)} className="input-minimal">
+                    <option value="slack">Slack</option>
+                    <option value="github">GitHub</option>
+                  </select>
+                  <input
+                    type="text"
+                    className="input-minimal"
+                    value={mcpToken}
+                    onChange={(event) => setMcpToken(event.target.value)}
+                    placeholder="Access token"
+                  />
+                  {mcpService === 'slack' && (
+                    <input
+                      type="text"
+                      className="input-minimal"
+                      value={mcpChannel}
+                      onChange={(event) => setMcpChannel(event.target.value)}
+                      placeholder="Default Slack channel (#general)"
+                    />
+                  )}
+                  {mcpService === 'github' && (
+                    <input
+                      type="text"
+                      className="input-minimal"
+                      value={mcpRepo}
+                      onChange={(event) => setMcpRepo(event.target.value)}
+                      placeholder="GitHub repo (owner/repo)"
+                    />
+                  )}
+                  <button type="button" className="btn-primary" onClick={addMcpConnection} disabled={mcpActionLoading}>
+                    Connect {mcpService}
+                  </button>
+                  {mcpStatus && <p className="text-sm text-[var(--text-secondary)]">{mcpStatus}</p>}
+                </div>
+              </div>
+            </div>
+          </aside>
+        )}
+
+        {settingsOpen && (
+          <aside className="w-[360px] border-l border-[var(--border)] bg-[var(--bg-secondary)] p-6">
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Settings</p>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Workspace settings</h2>
+              </div>
+              <button type="button" className="btn-ghost" onClick={() => setSettingsOpen(false)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-4 overflow-auto pr-1">
+              <div className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-primary)] p-4">
+                <p className="text-xs uppercase tracking-[0.35em] text-[var(--text-faint)]">Current roadmap</p>
+                <p className="mt-3 text-sm text-[var(--text-secondary)]">{selectedRoadmap?.title || 'Select a roadmap to configure workspace settings.'}</p>
+                <p className="mt-2 text-xs text-[var(--text-faint)]">Owner: {profile.display_name || profile.email}</p>
+              </div>
+
+              <div className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                <div className="grid gap-3">
+                  <label className="text-[10px] uppercase tracking-[0.35em] text-[var(--text-faint)]">Workspace title</label>
+                  <input
+                    type="text"
+                    className="input-minimal"
+                    value={workspaceTitle}
+                    onChange={(event) => setWorkspaceTitle(event.target.value)}
+                    placeholder="Roadmap title"
+                  />
+                  <label className="text-[10px] uppercase tracking-[0.35em] text-[var(--text-faint)]">Time budget (hours)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="input-minimal"
+                    value={workspaceTimeBudget}
+                    onChange={(event) => setWorkspaceTimeBudget(event.target.value)}
+                    placeholder="Hours"
+                  />
+                  <label className="text-[10px] uppercase tracking-[0.35em] text-[var(--text-faint)]">Target completion date</label>
+                  <input
+                    type="date"
+                    className="input-minimal"
+                    value={workspaceTargetDate}
+                    onChange={(event) => setWorkspaceTargetDate(event.target.value)}
+                  />
+                  <button type="button" className="btn-primary" onClick={saveWorkspaceSettings} disabled={settingsLoading || !selectedRoadmap?.id}>
+                    {settingsLoading ? 'Saving…' : 'Save settings'}
+                  </button>
+                  {settingsStatus && <p className="text-sm text-[var(--text-secondary)]">{settingsStatus}</p>}
+                </div>
+              </div>
             </div>
           </aside>
         )}

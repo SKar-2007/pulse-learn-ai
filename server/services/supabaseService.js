@@ -54,6 +54,26 @@ export async function getRoadmapById(roadmapId) {
   return data;
 }
 
+export async function updateRoadmap(roadmapId, updates) {
+  const normalizedUpdates = {
+    ...updates,
+    time_budget_hours: updates.timeBudgetHours != null ? normalizeNumber(updates.timeBudgetHours, 10) : undefined,
+    target_date: updates.targetDate || null,
+  };
+  delete normalizedUpdates.timeBudgetHours;
+  delete normalizedUpdates.targetDate;
+
+  const { data, error } = await supabase
+    .from('roadmaps')
+    .update({ ...normalizedUpdates, updated_at: new Date().toISOString() })
+    .eq('id', roadmapId)
+    .select()
+    .single();
+
+  if (error) throw handleSupabaseError(error, 'Unable to update roadmap');
+  return data;
+}
+
 export async function getRoadmapDetails(roadmapId) {
   const roadmap = await getRoadmapById(roadmapId);
   if (!roadmap) return null;

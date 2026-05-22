@@ -13,6 +13,7 @@ import {
   getNodesByRoadmap,
   insertNodes,
   saveStellarHash,
+  updateRoadmap,
 } from '../services/supabaseService.js';
 import { generateRoadmapFromText } from '../services/geminiService.js';
 import { mintCredentialReceipt } from '../services/stellarService.js';
@@ -70,6 +71,23 @@ router.get(
 
     const roadmap = await getRoadmapDetails(req.params.id);
     res.json({ roadmap });
+  })
+);
+
+router.patch(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const roadmap = await getRoadmapById(req.params.id);
+    if (!roadmap) throw new HttpError('Roadmap not found.', 404);
+    if (roadmap.owner_id !== req.user.id) throw new HttpError('Access denied.', 403);
+
+    const { title, timeBudgetHours, targetDate } = req.body;
+    if (!title && timeBudgetHours == null && !targetDate) {
+      throw new HttpError('No changes submitted.', 400);
+    }
+
+    const updated = await updateRoadmap(req.params.id, { title, timeBudgetHours, targetDate });
+    res.json({ roadmap: updated });
   })
 );
 
