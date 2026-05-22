@@ -2,11 +2,12 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 
+const ANALYTICS_MODEL = process.env.GEMINI_MODEL || process.env.GEMINI_PRIMARY_MODEL || 'gemini-1.5-flash';
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 const model = genAI.getGenerativeModel({
-  model: 'gemini-1.5-flash',
+  model: ANALYTICS_MODEL,
   generationConfig: { responseMimeType: 'application/json' },
 });
 

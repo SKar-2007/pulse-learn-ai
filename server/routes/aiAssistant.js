@@ -25,7 +25,11 @@ router.post('/', requireAuth, async (req, res) => {
     res.json({ reply });
   } catch (err) {
     console.error('AI assistant error:', err);
-    res.status(500).json({ error: 'AI service is unavailable. Please try again in a moment.' });
+    const message = String(err?.message || '');
+    if (message.includes('API key expired') || message.includes('API_KEY_INVALID') || message.includes('invalid API key')) {
+      return res.status(500).json({ error: 'AI is unavailable because the Gemini API key is invalid or expired. Please renew or replace the key.' });
+    }
+    return res.status(500).json({ error: 'AI service is unavailable. Please try again in a moment.' });
   }
 });
 

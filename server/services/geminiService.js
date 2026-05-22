@@ -2,9 +2,14 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { MBTI_AI_PROFILES } from '../lib/mbtiProfiles.js';
 
 const genAI = process.env.GOOGLE_API_KEY ? new GoogleGenerativeAI(process.env.GOOGLE_API_KEY) : null;
-const requestOptions = { apiVersion: 'v1' };
-const PRIMARY_MODEL = process.env.GEMINI_PRIMARY_MODEL || 'gemini-1.5-pro';
-const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-1.5-flash';
+const requestOptions = process.env.GEMINI_API_VERSION
+  ? { apiVersion: process.env.GEMINI_API_VERSION }
+  : undefined;
+const PRIMARY_MODEL = process.env.GEMINI_MODEL
+  || process.env.GEMINI_PRIMARY_MODEL
+  || 'gemini-1.5-pro';
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL
+  || (PRIMARY_MODEL === 'gemini-1.5-flash' ? 'gemini-2.5-flash' : 'gemini-1.5-flash');
 const LOCAL_LLM_URL = process.env.LLAMA_API_URL || process.env.LOCAL_LLM_URL || '';
 const LOCAL_LLM_MODEL = process.env.LLAMA_MODEL_NAME || process.env.LOCAL_LLM_MODEL || 'llama2';
 

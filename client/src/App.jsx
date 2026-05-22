@@ -5,11 +5,14 @@ import { apiUrl, authHeaders } from './lib/apiClient';
 import LoginForm from './components/auth/LoginForm';
 import PersonalityOnboarding from './components/auth/PersonalityOnboarding';
 import Dashboard from './components/Dashboard';
+import LoadingScreen from './components/LoadingScreen';
 
 const DEMO_SESSION = {
   access_token: 'demo',
   user: { id: 'demo-user', email: 'demo@pulse.test' },
 };
+
+const MIN_LOADER_MS = 1800;
 
 const DEMO_PROFILE = {
   mbti_type: 'INTJ',
@@ -23,11 +26,19 @@ export default function App() {
   const [session, setSession] = useState(startDemo ? DEMO_SESSION : null);
   const [profile, setProfile] = useState(startDemo ? DEMO_PROFILE : undefined); // undefined = loading, null = needs onboarding
   const [loading, setLoading] = useState(startDemo ? false : true);
+  const [minLoaderVisible, setMinLoaderVisible] = useState(startDemo ? false : true);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('pulse_theme');
     document.documentElement.dataset.theme = savedTheme || 'dark';
   }, []);
+
+  useEffect(() => {
+    if (startDemo) return;
+
+    const timer = setTimeout(() => setMinLoaderVisible(false), MIN_LOADER_MS);
+    return () => clearTimeout(timer);
+  }, [startDemo]);
 
   useEffect(() => {
     if (startDemo) return;
@@ -72,29 +83,12 @@ export default function App() {
       console.error('Failed to fetch profile:', err);
       setProfile(null);
     } finally {
-      // Small artificial delay to show off the premium loader
-      setTimeout(() => setLoading(false), 800);
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-4"
-        >
-          <div className="w-16 h-16 rounded-full border border-white/20 flex items-center justify-center">
-            <div className="h-8 w-8 rounded-full border border-white/50 animate-spin" />
-          </div>
-          <div className="text-center">
-            <h2 className="text-xl font-semibold uppercase tracking-[0.35em]">Pulse-Learn</h2>
-            <p className="text-sm text-white/70">Loading workspace…</p>
-          </div>
-        </motion.div>
-      </div>
-    );
+  if (loading || minLoaderVisible) {
+    return <LoadingScreen />;
   }
 
   return (
